@@ -93,17 +93,63 @@ aissist init --global     # Create ~/.aissist/ for global use
 
 ### `aissist goal`
 
-Manage your goals.
+Manage your goals with AI-generated codenames, deadlines, and interactive management.
+
+**Features:**
+- **Auto-generated Codenames**: Each goal gets a unique, memorable kebab-case identifier (e.g., "complete-project-proposal")
+- **Interactive List**: Select goals and perform actions (complete, delete, set deadline)
+- **Completion Tracking**: Completed goals moved to `finished/` with completion dates
+- **Deadline Management**: Set and track deadlines for time-sensitive goals
+- **Backward Compatible**: Legacy goals without codenames continue to work
 
 **Subcommands:**
-- `add <text>` - Add a new goal
-- `list [--date <date>]` - List goals for today or specific date
+- `add <text> [--deadline <date>]` - Add a new goal with optional deadline
+- `list [--date <date>] [--plain]` - List goals (interactive mode by default)
+- `complete <codename>` - Mark a goal as completed
+- `remove <codename>` - Remove a goal
+- `deadline <codename> <date>` - Set or update a goal's deadline
 
 **Examples:**
 ```bash
+# Add goals
 aissist goal add "Complete project proposal"
+aissist goal add "Launch MVP" --deadline 2025-11-15
+
+# Interactive list (select goal and choose action)
 aissist goal list
+
+# Plain text view (for legacy goals)
+aissist goal list --plain
+
+# Direct commands
+aissist goal complete complete-project-proposal
+aissist goal deadline launch-mvp 2025-12-01
+aissist goal remove launch-mvp
+
+# View goals from specific date
 aissist goal list --date 2024-01-15
+```
+
+**Goal Format:**
+Goals are stored with codenames and metadata:
+```markdown
+## 14:30 - complete-project-proposal
+
+Complete project proposal
+
+Deadline: 2025-11-15
+```
+
+**Completed Goals:**
+Finished goals are stored in `goals/finished/` with completion dates:
+```markdown
+## 14:30 - complete-project-proposal
+
+Complete project proposal
+
+Deadline: 2025-11-15
+
+Completed: 2025-11-10
 ```
 
 ### `aissist history`
@@ -197,7 +243,9 @@ aissist path
 .aissist/                    # or ~/.aissist/ for global
 ├── config.json              # Configuration
 ├── goals/                   # Goal tracking
-│   └── YYYY-MM-DD.md
+│   ├── YYYY-MM-DD.md        # Active goals with codenames
+│   └── finished/            # Completed goals archive
+│       └── YYYY-MM-DD.md
 ├── history/                 # Activity logs
 │   └── YYYY-MM-DD.md
 ├── context/                 # Context-specific info

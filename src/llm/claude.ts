@@ -298,3 +298,88 @@ export async function summarizeExcerpts(query: string, matches: SearchMatch[]): 
     throw err;
   }
 }
+
+/**
+ * Generate a unique kebab-case codename for a goal using Claude CLI
+ */
+export async function generateGoalCodename(goalText: string, existingCodenames: string[]): Promise<string> {
+  // Check if Claude CLI is available
+  const isAvailable = await checkClaudeCliAvailable();
+  if (!isAvailable) {
+    throw new Error(
+      'Claude CLI not found.\n' +
+      'Please install Claude Code from: https://claude.ai/download\n' +
+      'Then run: claude login'
+    );
+  }
+
+  const existingList = existingCodenames.length > 0
+    ? `\n\nExisting codenames to avoid:\n${existingCodenames.join(', ')}`
+    : '';
+
+  const prompt = `Generate a short, memorable kebab-case identifier (codename) for this goal.
+
+Goal: ${goalText}${existingList}
+
+Requirements:
+- Use kebab-case format (e.g., "complete-project", "review-documentation")
+- 1-4 words maximum
+- Capture the core meaning of the goal
+- Must be unique (not in existing codenames list)
+- Easy to type and remember
+- Use lowercase letters and hyphens only
+
+Respond with ONLY the codename, nothing else.`;
+
+  try {
+    let codename = await executeClaudeCommand(prompt, 15000);
+    // Clean up the response - remove any extra whitespace, quotes, or markdown
+    codename = codename.trim().replace(/^["'`]+|["'`]+$/g, '');
+
+    // Validate format (kebab-case)
+    if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(codename)) {
+      throw new Error(`Invalid codename format: ${codename}`);
+    }
+
+    // Handle conflicts by appending numeric suffix
+    if (existingCodenames.includes(codename)) {
+      let suffix = 2;
+      while (existingCodenames.includes(`${codename}-${suffix}`)) {
+        suffix++;
+      }
+      codename = `${codename}-${suffix}`;
+    }
+
+    return codename;
+  } catch (err) {
+    // Fallback to simple generation if Claude fails
+    console.error('Claude codename generation failed, using fallback');
+    return generateFallbackCodename(goalText, existingCodenames);
+  }
+}
+
+/**
+ * Fallback codename generation (deterministic, no AI)
+ */
+function generateFallbackCodename(goalText: string, existingCodenames: string[]): string {
+  // Take first few words, convert to kebab-case
+  const words = goalText
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, '')
+    .split(/\s+/)
+    .filter(word => word.length > 0)
+    .slice(0, 4);
+
+  let codename = words.join('-');
+
+  // Handle conflicts
+  if (existingCodenames.includes(codename)) {
+    let suffix = 2;
+    while (existingCodenames.includes(`${codename}-${suffix}`)) {
+      suffix++;
+    }
+    codename = `${codename}-${suffix}`;
+  }
+
+  return codename;
+}

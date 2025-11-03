@@ -77,6 +77,7 @@ export async function ensureDirectory(path: string): Promise<void> {
 export async function initializeStorage(basePath: string): Promise<void> {
   await ensureDirectory(basePath);
   await ensureDirectory(join(basePath, 'goals'));
+  await ensureDirectory(join(basePath, 'goals', 'finished'));
   await ensureDirectory(join(basePath, 'history'));
   await ensureDirectory(join(basePath, 'context'));
   await ensureDirectory(join(basePath, 'reflections'));
@@ -169,4 +170,170 @@ export async function readMarkdown(filePath: string): Promise<string | null> {
   } catch {
     return null;
   }
+}
+
+// Goal entry interface
+export interface GoalEntry {
+  timestamp: string;
+  codename: string | null;
+  text: string;
+  deadline: string | null;
+  rawEntry: string;
+}
+
+/**
+ * Parse a goal entry from markdown format
+ * Supports both new format (with codename) and legacy format (without)
+ *
+ * New format: ## HH:MM - codename\n\nGoal text\n\nDeadline: YYYY-MM-DD
+ * Legacy format: ## HH:MM\n\nGoal text
+ */
+export function parseGoalEntry(entry: string): GoalEntry | null {
+  const trimmed = entry.trim();
+  if (!trimmed) return null;
+
+  // Match header: ## HH:MM or ## HH:MM - codename
+  const headerMatch = trimmed.match(/^##\s+(\d{2}:\d{2})(?:\s+-\s+([a-z0-9-]+))?/);
+  if (!headerMatch) return null;
+
+  const timestamp = headerMatch[1];
+  const codename = headerMatch[2] || null;
+
+  // Extract text (everything after header until deadline or end)
+  const afterHeader = trimmed.substring(headerMatch[0].length).trim();
+  const deadlineMatch = afterHeader.match(/\n\nDeadline:\s+(\d{4}-\d{2}-\d{2})\s*$/);
+
+  let text: string;
+  let deadline: string | null = null;
+
+  if (deadlineMatch) {
+    deadline = deadlineMatch[1];
+    text = afterHeader.substring(0, deadlineMatch.index).trim();
+  } else {
+    text = afterHeader;
+  }
+
+  return {
+    timestamp,
+    codename,
+    text,
+    deadline,
+    rawEntry: trimmed,
+  };
+}
+
+/**
+ * Parse all goal entries from a markdown file content
+ */
+export function parseGoalEntries(content: string): GoalEntry[] {
+  if (!content) return [];
+
+  // Split by ## headers
+  const entries = content.split(/(?=^## )/gm).filter(e => e.trim());
+  return entries.map(parseGoalEntry).filter((e): e is GoalEntry => e !== null);
+}
+
+/**
+ * Find a goal by codename in a file
+ */
+export async function findGoalByCodename(filePath: string, codename: string): Promise<GoalEntry | null> {
+  const content = await readMarkdown(filePath);
+  if (!content) return null;
+
+  const entries = parseGoalEntries(content);
+  return entries.find(e => e.codename === codename) || null;
+}
+
+/**
+ * Extract existing codenames from a markdown file
+ */
+export async function getExistingCodenames(filePath: string): Promise<string[]> {
+  const content = await readMarkdown(filePath);
+  if (!content) return [];
+
+  const entries = parseGoalEntries(content);
+  return entries
+    .map(e => e.codename)
+    .filter((c): c is string => c !== null);
+}
+
+/**
+ * Remove a goal entry from a file by codename
+ */
+export async function removeGoalEntry(filePath: string, codename: string): Promise<boolean> {
+  const content = await readMarkdown(filePath);
+  if (!content) return false;
+
+  const entries = parseGoalEntries(content);
+  const filtered = entries.filter(e => e.codename !== codename);
+
+  if (filtered.length === entries.length) {
+    return false; // Goal not found
+  }
+
+  // Rebuild file content
+  const newContent = filtered.map(e => e.rawEntry).join('\n\n');
+  await writeFile(filePath, newContent);
+  return true;
+}
+
+/**
+ * Complete a goal entry (move from source to finished file)
+ */
+export async function completeGoalEntry(
+  sourcePath: string,
+  destPath: string,
+  codename: string
+): Promise<boolean> {
+  const goal = await findGoalByCodename(sourcePath, codename);
+  if (!goal) return false;
+
+  // Add completion date to finished entry
+  const completionDate = new Date().toISOString().split('T')[0];
+  const finishedEntry = `${goal.rawEntry}\n\nCompleted: ${completionDate}`;
+
+  // Append to finished file
+  await appendToMarkdown(destPath, finishedEntry);
+
+  // Remove from source file
+  await removeGoalEntry(sourcePath, codename);
+
+  return true;
+}
+
+/**
+ * Update a goal's deadline
+ */
+export async function updateGoalDeadline(
+  filePath: string,
+  codename: string,
+  deadline: string
+): Promise<boolean> {
+  const content = await readMarkdown(filePath);
+  if (!content) return false;
+
+  const entries = parseGoalEntries(content);
+  const goalIndex = entries.findIndex(e => e.codename === codename);
+
+  if (goalIndex === -1) return false;
+
+  const goal = entries[goalIndex];
+
+  // Rebuild goal entry with new deadline
+  let newEntry = `## ${goal.timestamp}`;
+  if (goal.codename) {
+    newEntry += ` - ${goal.codename}`;
+  }
+  newEntry += `\n\n${goal.text}\n\nDeadline: ${deadline}`;
+
+  entries[goalIndex] = {
+    ...goal,
+    deadline,
+    rawEntry: newEntry,
+  };
+
+  // Rebuild file content
+  const newContent = entries.map(e => e.rawEntry).join('\n\n');
+  await writeFile(filePath, newContent);
+  return true;
 }
