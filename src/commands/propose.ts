@@ -10,6 +10,7 @@ import { loadProposalData, hasData, getDataSummary } from '../utils/data-aggrega
 import { buildProposalPrompt } from '../prompts/proposal-prompt.js';
 import { checkClaudeCodeSession, executeClaudeCodeWithTools } from '../llm/claude.js';
 import { success, error, info, warn } from '../utils/cli.js';
+import { linkToGoal } from '../utils/goal-matcher.js';
 
 const proposeCommand = new Command('propose');
 
@@ -20,6 +21,7 @@ proposeCommand
   .option('--debug', 'Display debug information (prompt, data summary)')
   .option('--context', 'Include context files in the analysis')
   .option('--tag <tag>', 'Filter by specific tag (e.g., "work", "fitness")')
+  .option('-g, --goal [keyword]', 'Link proposals to a goal (optional keyword for matching)')
   .action(async (timeframe: string, options) => {
     try {
       const storagePath = await getStoragePath();
@@ -107,6 +109,18 @@ proposeCommand
         console.log(chalk.cyan('========================\n'));
       }
 
+      // Handle goal linking if --goal flag is present
+      const goalLinkResult = await linkToGoal({
+        goalKeyword: options.goal,
+        storagePath,
+      });
+
+      if (goalLinkResult.codename) {
+        info(`Proposals will be linked to goal: ${goalLinkResult.codename}`);
+      } else if (options.goal && goalLinkResult.message !== 'No goal linking requested') {
+        info(goalLinkResult.message);
+      }
+
       // Generate proposals with Claude Code
       spinner.start(`Claude is analyzing your data for ${parsedTimeframe.label}...`);
 
@@ -126,7 +140,7 @@ proposeCommand
         });
 
         if (shouldSave) {
-          await saveProposalsAsGoals(response, storagePath);
+          await saveProposalsAsGoals(response, storagePath, goalLinkResult.codename);
         }
 
       } catch (claudeError) {
@@ -148,7 +162,7 @@ proposeCommand
 /**
  * Parse and save proposal items as goals
  */
-async function saveProposalsAsGoals(response: string, storagePath: string): Promise<void> {
+async function saveProposalsAsGoals(response: string, storagePath: string, linkedGoalCodename: string | null = null): Promise<void> {
   const spinner = ora('Saving proposals as goals...').start();
 
   try {
@@ -175,7 +189,13 @@ async function saveProposalsAsGoals(response: string, storagePath: string): Prom
     const filePath = join(storagePath, 'goals', `${date}.md`);
 
     const goalsText = proposals.map((p, i) => `${i + 1}. ${p}`).join('\n');
-    const entry = `## Proposed Goals (${time})\n\n${goalsText}`;
+    let entry = `## Proposed Goals (${time})\n\n${goalsText}`;
+
+    // Add goal metadata if a goal was linked
+    if (linkedGoalCodename) {
+      entry += `\n\nGoal: ${linkedGoalCodename}`;
+    }
+
     await appendToMarkdown(filePath, entry);
 
     spinner.succeed(`Saved ${proposals.length} proposal(s) as goals!`);

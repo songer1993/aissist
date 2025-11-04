@@ -4,6 +4,7 @@ import { input } from '@inquirer/prompts';
 import { getStoragePath, appendToMarkdown, readMarkdown } from '../utils/storage.js';
 import { getCurrentDate, getCurrentTime, parseDate } from '../utils/date.js';
 import { success, error, info } from '../utils/cli.js';
+import { linkToGoal } from '../utils/goal-matcher.js';
 
 const reflectCommand = new Command('reflect');
 
@@ -17,12 +18,25 @@ const REFLECTION_QUESTIONS = [
 
 reflectCommand
   .description('Start a reflection session')
-  .action(async () => {
+  .option('-g, --goal [keyword]', 'Link this reflection to a goal (optional keyword for matching)')
+  .action(async (options: { goal?: string | boolean }) => {
     try {
       const storagePath = await getStoragePath();
       const date = getCurrentDate();
       const time = getCurrentTime();
       const filePath = join(storagePath, 'reflections', `${date}.md`);
+
+      // Handle goal linking if --goal flag is present
+      const goalLinkResult = await linkToGoal({
+        goalKeyword: options.goal,
+        storagePath,
+      });
+
+      if (goalLinkResult.codename) {
+        info(`Reflection will be linked to goal: ${goalLinkResult.codename}\n`);
+      } else if (options.goal && goalLinkResult.message !== 'No goal linking requested') {
+        info(goalLinkResult.message + '\n');
+      }
 
       info('Starting reflection session...\n');
 
@@ -43,10 +57,20 @@ reflectCommand
         return;
       }
 
-      const entry = `## Reflection at ${time}\n\n${responses.join('\n\n')}`;
+      let entry = `## Reflection at ${time}\n\n${responses.join('\n\n')}`;
+
+      // Add goal metadata if a goal was linked
+      if (goalLinkResult.codename) {
+        entry += `\n\nGoal: ${goalLinkResult.codename}`;
+      }
+
       await appendToMarkdown(filePath, entry);
 
-      success('Reflection saved!');
+      if (goalLinkResult.codename) {
+        success(`Reflection saved and linked to goal: ${goalLinkResult.codename}!`);
+      } else {
+        success('Reflection saved!');
+      }
     } catch (err) {
       if ((err as Error).name === 'ExitPromptError') {
         info('\nReflection cancelled.');

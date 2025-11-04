@@ -1,9 +1,9 @@
 import { Command } from 'commander';
 import { join } from 'path';
-import { select } from '@inquirer/prompts';
-import { getStoragePath, appendToMarkdown, readMarkdown, getActiveGoals } from '../utils/storage.js';
+import { getStoragePath, appendToMarkdown, readMarkdown } from '../utils/storage.js';
 import { getCurrentDate, getCurrentTime, parseDate } from '../utils/date.js';
 import { success, error, info } from '../utils/cli.js';
+import { linkToGoal } from '../utils/goal-matcher.js';
 
 const historyCommand = new Command('history');
 
@@ -11,8 +11,8 @@ historyCommand
   .command('log')
   .description('Log a history entry (use --goal to link to a goal)')
   .argument('<text>', 'History entry text')
-  .option('-g, --goal', 'Link this history entry to a goal')
-  .action(async (text: string, options: { goal?: boolean }) => {
+  .option('-g, --goal [keyword]', 'Link this history entry to a goal (optional keyword for matching)')
+  .action(async (text: string, options: { goal?: string | boolean }) => {
     try {
       const storagePath = await getStoragePath();
       const date = getCurrentDate();
@@ -20,53 +20,25 @@ historyCommand
       const filePath = join(storagePath, 'history', `${date}.md`);
 
       let entry = `## ${time}\n\n${text}`;
-      let linkedGoalCodename: string | null = null;
 
       // Handle goal linking if --goal flag is present
-      if (options.goal) {
-        const activeGoals = await getActiveGoals(storagePath);
+      const goalLinkResult = await linkToGoal({
+        goalKeyword: options.goal,
+        storagePath,
+      });
 
-        if (activeGoals.length === 0) {
-          info('No active goals found');
-        } else {
-          // Create choices for goal selection
-          const choices = [
-            {
-              name: 'None - Don\'t link to a goal',
-              value: null,
-            },
-            ...activeGoals.map(goal => {
-              // Truncate long goal text for display
-              const displayText = goal.text.length > 60
-                ? goal.text.substring(0, 60) + '...'
-                : goal.text;
-
-              return {
-                name: `${goal.codename} | ${displayText}`,
-                value: goal.codename,
-                description: goal.text,
-              };
-            }),
-          ];
-
-          // Prompt user to select a goal
-          linkedGoalCodename = await select({
-            message: 'Link to which goal?',
-            choices,
-          });
-
-          // Add goal metadata if a goal was selected
-          if (linkedGoalCodename) {
-            entry += `\n\nGoal: ${linkedGoalCodename}`;
-          }
-        }
+      if (goalLinkResult.codename) {
+        entry += `\n\nGoal: ${goalLinkResult.codename}`;
       }
 
       await appendToMarkdown(filePath, entry);
 
-      if (linkedGoalCodename) {
-        success(`History logged and linked to goal: ${linkedGoalCodename}`);
+      if (goalLinkResult.codename) {
+        success(`History logged and linked to goal: ${goalLinkResult.codename}`);
       } else {
+        if (options.goal && goalLinkResult.message !== 'No goal linking requested') {
+          info(goalLinkResult.message);
+        }
         success(`History logged: "${text}"`);
       }
     } catch (err) {

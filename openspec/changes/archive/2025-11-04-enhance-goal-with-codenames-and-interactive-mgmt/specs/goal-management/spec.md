@@ -27,7 +27,7 @@ The system SHALL allow users to add goals with auto-generated unique codenames a
 - **THEN** the system appends a numeric suffix (e.g., "project-proposal-2")
 - **OR** generates a more specific codename to avoid conflicts
 
-### Requirement: Goal File Format with Metadata
+### Requirement: Goal File Format
 The system SHALL store goals in a structured Markdown format with codenames, timestamps, and optional metadata.
 
 #### Scenario: Format goal entry with codename

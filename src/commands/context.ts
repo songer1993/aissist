@@ -4,6 +4,7 @@ import { readFile, readdir, access } from 'fs/promises';
 import { getStoragePath, appendToMarkdown, readMarkdown, ensureDirectory } from '../utils/storage.js';
 import { getCurrentDate, getCurrentTime, parseDate } from '../utils/date.js';
 import { success, error, info } from '../utils/cli.js';
+import { linkToGoal } from '../utils/goal-matcher.js';
 
 const contextCommand = new Command('context');
 
@@ -22,7 +23,8 @@ contextCommand
   .description('Log context-specific information')
   .argument('<context>', 'Context name (e.g., work, diet, fitness)')
   .argument('<input>', 'Text or file path to log')
-  .action(async (context: string, input: string) => {
+  .option('-g, --goal [keyword]', 'Link this context entry to a goal (optional keyword for matching)')
+  .action(async (context: string, input: string, options: { goal?: string | boolean }) => {
     try {
       const storagePath = await getStoragePath();
       const date = getCurrentDate();
@@ -31,6 +33,12 @@ contextCommand
       await ensureDirectory(contextPath);
 
       const filePath = join(contextPath, `${date}.md`);
+
+      // Handle goal linking if --goal flag is present
+      const goalLinkResult = await linkToGoal({
+        goalKeyword: options.goal,
+        storagePath,
+      });
 
       let content: string;
       let source: string;
@@ -45,10 +53,23 @@ contextCommand
         source = 'Text';
       }
 
-      const entry = `## ${time}\n\n**Source:** ${source}\n\n${content}`;
+      let entry = `## ${time}\n\n**Source:** ${source}\n\n${content}`;
+
+      // Add goal metadata if a goal was linked
+      if (goalLinkResult.codename) {
+        entry += `\n\nGoal: ${goalLinkResult.codename}`;
+      }
+
       await appendToMarkdown(filePath, entry);
 
-      success(`Context logged to "${context}"`);
+      if (goalLinkResult.codename) {
+        success(`Context logged to "${context}" and linked to goal: ${goalLinkResult.codename}`);
+      } else {
+        if (options.goal && goalLinkResult.message !== 'No goal linking requested') {
+          info(goalLinkResult.message);
+        }
+        success(`Context logged to "${context}"`);
+      }
     } catch (err) {
       error(`Failed to log context: ${(err as Error).message}`);
       throw err;

@@ -4,29 +4,46 @@
 TBD - created by archiving change add-aissist-mvp. Update Purpose after archive.
 ## Requirements
 ### Requirement: Add Goals
-The system SHALL allow users to add goals which are stored in dated Markdown files.
+The system SHALL allow users to add goals with auto-generated unique codenames and store them with metadata.
 
-#### Scenario: Add goal with text argument
+#### Scenario: Add goal with text argument generates codename
 - **WHEN** the user runs `aissist goal add "Complete project proposal"`
-- **THEN** the system appends the goal to goals/YYYY-MM-DD.md with a timestamp
+- **THEN** the system generates a unique kebab-case codename using Claude AI (e.g., "complete-project-proposal")
+- **AND** appends the goal to goals/YYYY-MM-DD.md with timestamp, codename, and text
+- **AND** displays the generated codename to the user
 
-#### Scenario: Add goal with multiline text
+#### Scenario: Add goal with multiline text preserves formatting
 - **WHEN** the user runs `aissist goal add` with multiline text in quotes
-- **THEN** the system preserves the multiline formatting in the Markdown file
+- **THEN** the system generates a unique codename
+- **AND** preserves the multiline formatting in the Markdown file
+- **AND** stores the codename in the goal metadata
 
-#### Scenario: Add multiple goals same day
+#### Scenario: Add multiple goals same day with unique codenames
 - **WHEN** the user adds multiple goals on the same day
-- **THEN** each goal is appended as a separate entry with its own timestamp
+- **THEN** each goal is appended with its own timestamp and unique codename
+- **AND** Claude ensures codename uniqueness by checking existing goals for the day
+
+#### Scenario: Codename generation handles conflicts
+- **WHEN** a generated codename would conflict with an existing goal's codename
+- **THEN** the system appends a numeric suffix (e.g., "project-proposal-2")
+- **OR** generates a more specific codename to avoid conflicts
 
 ### Requirement: Goal File Format
-The system SHALL store goals in a structured Markdown format with timestamps and metadata.
+The system SHALL store goals in a structured Markdown format with codenames, timestamps, and optional metadata.
 
-#### Scenario: Format goal entry
+#### Scenario: Format goal entry with codename
 - **WHEN** a goal is added
 - **THEN** the entry includes:
   - A timestamp (HH:MM format)
+  - A unique kebab-case codename
   - The goal text
-  - Markdown formatting for readability
+  - Optional deadline field
+  - Markdown formatting for readability and parsing
+
+#### Scenario: Example goal entry format
+- **WHEN** a goal is stored
+- **THEN** it follows this format:
+```markdown
 
 ### Requirement: Goal Visibility
 The system SHALL allow users to view their stored goals.
@@ -76,4 +93,58 @@ The system SHALL prompt users to enter a deadline when adding a goal, with natur
 - **WHEN** the user runs `aissist goal add "Finish coding" -d 2025-11-10`
 - **THEN** the system does NOT prompt for a deadline interactively
 - **AND** uses the provided flag value as the deadline
+
+### Requirement: Codename Generation
+The system SHALL use Claude AI to generate meaningful, unique kebab-case codenames for goals.
+
+#### Scenario: Generate codename from goal text
+- **WHEN** a new goal is added
+- **THEN** the system sends the goal text to Claude with instructions to generate a short, meaningful kebab-case identifier
+- **AND** ensures the codename is unique within the day's goals
+- **AND** stores the codename with the goal
+
+#### Scenario: Codename length constraint
+- **WHEN** generating a codename
+- **THEN** the codename should be 1-4 words in kebab-case
+- **AND** should capture the core meaning of the goal
+- **AND** should be memorable and easy to type
+
+#### Scenario: Codename uniqueness check
+- **WHEN** generating a codename
+- **THEN** the system checks existing goals in the day's file
+- **AND** if the codename exists, instructs Claude to generate an alternative
+- **OR** appends a numeric suffix
+
+### Requirement: Goal Parsing and Search
+The system SHALL parse goal entries to extract codenames and metadata for management operations.
+
+#### Scenario: Parse goal entry
+- **WHEN** reading a goal file
+- **THEN** the system extracts timestamp, codename, text, and deadline from each entry
+- **AND** makes them available for search and filtering
+
+#### Scenario: Find goal by codename
+- **WHEN** a command references a goal by codename
+- **THEN** the system searches today's goals file
+- **AND** returns the matching goal entry
+- **OR** returns null if not found
+
+#### Scenario: Search across dates for codename
+- **WHEN** a goal is not found in today's file
+- **THEN** the system optionally searches recent goal files
+- **AND** informs the user of the goal's date if found elsewhere
+
+### Requirement: Backward Compatibility
+The system SHALL handle existing goal entries without codenames gracefully.
+
+#### Scenario: Display legacy goals in list
+- **WHEN** listing goals from files created before this change
+- **THEN** the system displays goals without codenames
+- **AND** marks them as "[no-codename]" in interactive list
+- **AND** does not allow management actions on legacy goals
+
+#### Scenario: Migrate legacy goal on interaction
+- **WHEN** the user attempts to manage a legacy goal
+- **THEN** the system offers to generate a codename for it
+- **AND** updates the goal entry with the codename if user accepts
 
