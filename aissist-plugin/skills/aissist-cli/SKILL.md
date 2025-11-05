@@ -171,6 +171,86 @@ aissist propose
 aissist propose "this week"
 ```
 
+### Claude Code Plugin Commands
+
+When working within Claude Code, use these slash commands for quick access:
+
+#### `/aissist:log` - AI-Enhanced Quick Logging
+
+Log history entries with AI enhancement and multimodal support. Claude automatically rephrases your input into well-structured entries and links to relevant goals.
+
+```
+/aissist:log Fixed auth bug, took 3 hours
+```
+→ Claude enhances: "Resolved authentication bug in login flow (3 hours)"
+
+**With images/screenshots:**
+```
+/aissist:log [attach screenshot] Updated dashboard design
+```
+→ Claude analyzes image: "Updated dashboard: redesigned metrics cards with improved data visualization..."
+
+**Features:**
+- AI rephrases rough notes into polished entries
+- Preserves exact metrics and time estimates
+- Analyzes attached images using vision capabilities
+- Automatically links to relevant goals based on content
+- Handles multi-line descriptions
+
+**When to use:**
+- Quick logging without leaving Claude Code
+- Have screenshots or images to log
+- Want AI to structure your rough notes
+- Need automatic goal linking
+
+#### `/aissist:log-github` - Import GitHub Activity
+
+Import GitHub commits and pull requests as history entries with semantic summarization.
+
+```
+/aissist:log-github today
+/aissist:log-github "this week"
+/aissist:log-github "last month"
+```
+
+**Features:**
+- Fetches commits and PRs from specified timeframe
+- Semantically groups related changes
+- Auto-links to relevant goals
+- Requires GitHub CLI (`gh`) authentication
+
+**When to use:**
+- Bulk import of recent development work
+- End of day/week to catch all GitHub activity
+- Want automated activity summarization
+
+#### `/aissist:recall` - Semantic Search
+
+Search your history, goals, and reflections using natural language queries.
+
+```
+/aissist:recall "what did I learn about TypeScript last month?"
+/aissist:recall "show my fitness progress"
+```
+
+#### `/aissist:report` - Generate Reports
+
+Create accomplishment reports from your history for various purposes.
+
+```
+/aissist:report "this week" --purpose standup
+/aissist:report "last month" --purpose performance-review
+```
+
+**Command Comparison:**
+
+| Command | Purpose | Input | Output |
+|---------|---------|-------|--------|
+| `/aissist:log` | Quick history logging | Text + images | AI-enhanced entry |
+| `/aissist:log-github` | GitHub import | Timeframe | Summarized commits/PRs |
+| `/aissist:recall` | Search history | Natural language query | Relevant entries |
+| `/aissist:report` | Generate reports | Timeframe + purpose | Formatted report |
+
 ## Command Construction Guidelines
 
 1. **Always check if storage is initialized** - If user is new to aissist, suggest `aissist init` first

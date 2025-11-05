@@ -6,6 +6,7 @@ Real-world workflows and usage patterns for effective use of aissist.
 - [Getting Started](#getting-started)
 - [Daily Workflow](#daily-workflow)
 - [Goal-Driven Workflow](#goal-driven-workflow)
+- [Quick Logging with AI Enhancement](#quick-logging-with-ai-enhancement)
 - [Context-Specific Workflows](#context-specific-workflows)
 - [Reflection and Planning](#reflection-and-planning)
 - [GitHub Integration](#github-integration)
@@ -168,6 +169,122 @@ aissist todo add "Complete TypeScript handbook" --goal learn-typescript
 # Review progress across all goals
 aissist recall "what progress have I made on my goals?"
 ```
+
+---
+
+## Quick Logging with AI Enhancement
+
+### Using Claude Code for Smart Logging
+
+When working in Claude Code, use `/aissist:log` for instant, AI-enhanced history logging:
+
+#### Simple Text Logging
+
+```
+/aissist:log Fixed authentication bug, took about 3 hours
+```
+
+**What Claude does:**
+1. Analyzes your rough input
+2. Rephrases to: "Resolved authentication bug in login flow (3 hours)"
+3. Checks your goals for matches
+4. Auto-links to relevant goal if found
+5. Logs the enhanced entry
+
+#### Logging with Screenshots
+
+```
+/aissist:log [attach dashboard screenshot] Updated the dashboard today
+```
+
+**What Claude does:**
+1. Analyzes the screenshot using vision capabilities
+2. Extracts details: UI changes, color scheme, layout improvements
+3. Combines with your text
+4. Enhanced entry: "Updated dashboard: redesigned metrics cards with improved data visualization, added responsive grid layout, and modernized color scheme"
+5. Logs with full context
+
+#### Performance Metrics from Images
+
+```
+/aissist:log [attach performance graph] Made some performance improvements
+```
+
+**What Claude does:**
+1. Analyzes the graph/metrics
+2. Extracts specific numbers: "Reduced page load from 3.2s to 1.1s, improved throughput by 40%"
+3. Structures as achievement
+4. Enhanced entry: "Performance optimization: Reduced page load time from 3.2s to 1.1s and improved throughput by 40%"
+
+#### Before/After Comparisons
+
+```
+/aissist:log [before.png, after.png] Redesigned the login page
+```
+
+**What Claude does:**
+1. Compares both images
+2. Identifies changes: layout, colors, typography, UX improvements
+3. Enhanced entry: "Redesigned login page: modernized UI with cleaner layout, improved form validation, enhanced mobile responsiveness, and updated branding"
+
+### AI Enhancement Examples
+
+#### Example 1: Rough Notes → Polished Entry
+
+**Input:**
+```
+/aissist:log worked on refactoring the database stuff today extracted common queries into repository pattern updated all the tests too
+```
+
+**Enhanced:**
+```
+"Refactored database layer: implemented repository pattern for common queries and updated comprehensive test coverage"
+```
+
+#### Example 2: Metrics Preservation
+
+**Input:**
+```
+/aissist:log API optimization - went from 500ms to 120ms response time by adding cache and optimizing queries
+```
+
+**Enhanced:**
+```
+"Optimized API performance: improved database queries and implemented caching, reducing response time from 500ms to 120ms"
+```
+*(Note: Exact metrics preserved)*
+
+#### Example 3: Multi-Part Work
+
+**Input:**
+```
+/aissist:log Today I:
+- Fixed the auth bug
+- Added password reset flow
+- Updated user profile page
+- Wrote unit tests
+```
+
+**Enhanced:**
+```
+"Authentication and user management improvements: resolved auth bug, implemented password reset flow, updated user profile page, and added comprehensive unit tests"
+```
+
+### When to Use Each Logging Method
+
+| Method | Use When | Benefits |
+|--------|----------|----------|
+| `/aissist:log` (Claude Code) | Quick logging during work, have images/screenshots | AI enhancement, multimodal, no terminal switch |
+| `aissist history log` (CLI) | Scripting, automation, precise control | Direct, scriptable, no AI processing |
+| `/aissist:log-github` (Claude Code) | End of day/week GitHub summary | Bulk import, automated summarization |
+
+### Tips for Effective AI Logging
+
+1. **Don't worry about structure** - Claude handles formatting
+2. **Include specific numbers** - They're preserved exactly
+3. **Attach relevant images** - Screenshots, graphs, diagrams add valuable context
+4. **Be specific about time** - "3 hours", "all day", "quick fix" help convey effort
+5. **Trust the goal linking** - Claude finds relevant goals automatically
 
 ---
 
@@ -339,18 +456,25 @@ aissist goal add "Build e-commerce site with Next.js"
 
 ### Import GitHub Activity
 
-Automatically log GitHub work as history:
+Automatically log GitHub work as history using the Claude Code plugin or CLI:
 
+**Using Claude Code (recommended):**
+```
+/aissist:log-github today
+/aissist:log-github "this week"
+/aissist:log-github "last month"
+```
+
+**Using CLI:**
 ```bash
-# 1. Import today's GitHub activity
+# Import today's GitHub activity
 aissist history log --from github
 # Prompts for timeframe, defaults to today
 
-# 2. Import specific timeframe
-aissist history log --from github
-# Enter "this week" when prompted
+# Import specific timeframe
+aissist history log --from "this week" --from github
 
-# 3. Review imported history
+# Review imported history
 aissist history show --from "today"
 ```
 
@@ -365,8 +489,16 @@ aissist history show --from "today"
 
 ### Link GitHub Work to Goals
 
-After importing, link to goals:
+The import automatically links to relevant goals based on semantic analysis:
 
+**Using Claude Code:**
+```
+# Import with automatic goal linking
+/aissist:log-github "this week"
+# Claude analyzes commits/PRs and auto-links to matching goals
+```
+
+**Manual linking (CLI):**
 ```bash
 # 1. Import GitHub activity
 aissist history log --from github
@@ -374,8 +506,8 @@ aissist history log --from github
 # 2. View what was imported
 aissist history show --from today
 
-# 3. Add goal-specific context
-aissist history log "GitHub work was for authentication feature" --goal build-user-auth
+# 3. Add goal-specific context if needed
+aissist history log "Additional context for authentication work" --goal build-user-auth
 
 # 4. Review goal progress including GitHub work
 aissist recall "progress on user authentication goal"
