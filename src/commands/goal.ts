@@ -18,6 +18,7 @@ import { success, error, info } from '../utils/cli.js';
 import { generateGoalCodename } from '../llm/claude.js';
 import { parseTimeframe } from '../utils/timeframe-parser.js';
 import chalk from 'chalk';
+import { playCompletionAnimation } from '../utils/animations.js';
 
 const goalCommand = new Command('goal');
 
@@ -183,7 +184,8 @@ goalCommand
       const completed = await completeGoalEntry(sourcePath, destPath, codename);
 
       if (completed) {
-        success(`Goal '${codename}' completed! 🎉`);
+        // Play completion animation for goal achievement
+        await playCompletionAnimation(`Goal '${codename}' completed!`);
       } else {
         error(`Goal '${codename}' not found`);
       }

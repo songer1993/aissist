@@ -8,6 +8,11 @@ export const ConfigSchema = z.object({
   version: z.string().default('1.0.0'),
   createdAt: z.string(),
   lastModified: z.string(),
+  animations: z
+    .object({
+      enabled: z.boolean().default(true),
+    })
+    .default({ enabled: true }),
 });
 
 export type Config = z.infer<typeof ConfigSchema>;
@@ -94,6 +99,9 @@ export async function initializeStorage(basePath: string): Promise<void> {
       version: '1.0.0',
       createdAt: now,
       lastModified: now,
+      animations: {
+        enabled: true,
+      },
     };
     await saveConfig(basePath, config);
   }

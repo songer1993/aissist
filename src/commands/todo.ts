@@ -15,6 +15,7 @@ import {
 import { getCurrentDate, getCurrentTime, parseDate } from '../utils/date.js';
 import { success, error, info } from '../utils/cli.js';
 import { linkToGoal } from '../utils/goal-matcher.js';
+import { playCompletionAnimation } from '../utils/animations.js';
 
 const todoCommand = new Command('todo');
 
@@ -164,7 +165,8 @@ todoCommand
       // Log to history
       await logTodoCompletion(updatedTodo, storagePath);
 
-      success(`Todo completed: "${updatedTodo.text}"`);
+      // Play completion animation
+      await playCompletionAnimation(`Todo completed: "${updatedTodo.text}"`);
       if (updatedTodo.goal) {
         info(`Linked to goal: ${updatedTodo.goal}`);
       }
@@ -310,7 +312,11 @@ async function interactiveTodoList(
       await logTodoCompletion(todo, storagePath);
     }
 
-    success(`${selectedIndices.length} todo(s) completed and logged to history`);
+    // Play completion animation with batch count
+    await playCompletionAnimation(
+      `${selectedIndices.length} todo(s) completed and logged to history`,
+      { count: selectedIndices.length }
+    );
   } catch (err) {
     if ((err as Error).name === 'ExitPromptError') {
       info('Selection cancelled');

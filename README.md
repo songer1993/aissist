@@ -8,6 +8,7 @@ A local-first, AI-powered CLI personal assistant for tracking goals, reflections
 - **Dual Storage**: Global (~/.aissist/) and project-specific (./.aissist/) modes
 - **Goal Tracking**: Log and review your goals with AI-generated codenames
 - **Todo Management**: Track daily tasks with checkbox UI and automatic history logging
+- **Completion Animations**: Subtle, satisfying terminal animations when you complete tasks and goals
 - **History Logging**: Track daily activities and events
 - **Context Management**: Organize information by context (work, diet, fitness, etc.)
 - **Guided Reflection**: Interactive prompts for structured self-reflection
@@ -353,6 +354,52 @@ aissist path
 └── slash-commands/          # Claude Code integration
     └── aissist.json
 ```
+
+## Configuration
+
+Aissist stores its configuration in `config.json` within your storage directory (`.aissist/` or `~/.aissist/`).
+
+### Configuration Options
+
+#### Animations
+
+Control the completion animations that play when you finish todos or goals.
+
+```json
+{
+  "animations": {
+    "enabled": true
+  }
+}
+```
+
+**Settings:**
+- `enabled` (boolean, default: `true`) - Enable or disable completion animations
+
+**To disable animations:**
+
+1. Edit your config file:
+   ```bash
+   # For local storage
+   vim .aissist/config.json
+
+   # For global storage
+   vim ~/.aissist/config.json
+   ```
+
+2. Set `animations.enabled` to `false`:
+   ```json
+   {
+     "version": "1.0.0",
+     "createdAt": "2025-11-04T12:00:00.000Z",
+     "lastModified": "2025-11-04T12:00:00.000Z",
+     "animations": {
+       "enabled": false
+     }
+   }
+   ```
+
+When animations are disabled, completion actions show simple success messages instead of animated feedback.
 
 ## Claude AI Integration
 
