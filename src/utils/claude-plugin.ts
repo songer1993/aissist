@@ -100,12 +100,41 @@ export async function resolvePackagePath(): Promise<string | null> {
 }
 
 /**
+ * Check if running in production environment
+ * Checks NODE_ENV first, then falls back to checking if path contains node_modules
+ */
+export function isProductionEnvironment(packagePath: string): boolean {
+  // Check NODE_ENV first
+  if (process.env.NODE_ENV === 'production') {
+    return true;
+  }
+
+  if (process.env.NODE_ENV === 'development') {
+    return false;
+  }
+
+  // Fallback: check if path contains node_modules
+  return packagePath.includes('node_modules');
+}
+
+/**
+ * Resolve the marketplace URL based on environment
+ * Returns GitHub URL for production, local path for development
+ */
+export function resolveMarketplaceUrl(packagePath: string): string {
+  if (isProductionEnvironment(packagePath)) {
+    return 'albertnahas/aissist';
+  }
+
+  return `${packagePath}/aissist-plugin`;
+}
+
+/**
  * Add aissist as a marketplace in Claude Code
  */
-export async function addMarketplace(packagePath: string): Promise<{ success: boolean; error?: string }> {
+export async function addMarketplace(marketplaceUrl: string): Promise<{ success: boolean; error?: string }> {
   return new Promise((resolve) => {
-    const marketplacePath = `${packagePath}/aissist-plugin`;
-    const child = spawn('claude', ['plugin', 'marketplace', 'add', marketplacePath], {
+    const child = spawn('claude', ['plugin', 'marketplace', 'add', marketplaceUrl], {
       stdio: 'pipe',
     });
 
@@ -207,12 +236,15 @@ export async function integrateClaudeCodePlugin(): Promise<PluginInstallResult> 
     };
   }
 
+  // Resolve marketplace URL based on environment
+  const marketplaceUrl = resolveMarketplaceUrl(packagePath);
+
   // Add marketplace
-  const marketplaceResult = await addMarketplace(packagePath);
+  const marketplaceResult = await addMarketplace(marketplaceUrl);
   if (!marketplaceResult.success) {
     return {
       success: false,
-      message: `Failed to add marketplace: ${marketplaceResult.error}\n\nTry manually:\n  claude plugin marketplace add ${packagePath}/aissist-plugin\n  claude plugin install aissist`,
+      message: `Failed to add marketplace: ${marketplaceResult.error}\n\nTry manually:\n  claude plugin marketplace add ${marketplaceUrl}\n  claude plugin install aissist`,
     };
   }
 
