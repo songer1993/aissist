@@ -16,3 +16,6 @@ Use `@/openspec/AGENTS.md` to learn:
 Keep this managed block so 'openspec update' can refresh the instructions.
 
 <!-- OPENSPEC:END -->
+
+- When making changes that affect the documentation, we should update the documentation. 
+- Any changes to the CLI and the tools should be taught to the skill associated with the plug-in. 
