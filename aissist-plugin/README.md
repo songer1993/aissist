@@ -90,11 +90,72 @@ Example trigger phrases:
 
 | Command | Description | Example |
 |---------|-------------|---------|
+| `/aissist:chat` | Conversational assistant for goals and planning | `/aissist:chat What should I focus on today?` |
 | `/aissist:log` | AI-enhanced history logging with images | `/aissist:log Fixed bug in auth flow` |
 | `/aissist:log-github` | Import GitHub activity | `/aissist:log-github "this week"` |
 | `/aissist:recall` | Semantic search across history | `/aissist:recall "TypeScript learning"` |
 | `/aissist:report` | Generate accomplishment reports | `/aissist:report "last month"` |
 | `/aissist:todo` | Extract todos from context with AI | `/aissist:todo Fix auth, update docs, add tests` |
+
+### `/aissist:chat` - Conversational Assistant
+
+Have natural conversations with your aissist assistant about goals, progress, and plans. The command activates the aissist-cli skill for intelligent, context-aware responses using full CLI capabilities.
+
+**Usage:**
+```
+/aissist:chat <your question or prompt>
+```
+
+**Features:**
+- Natural language conversations about your data
+- Intelligent command selection based on intent
+- Progressive data loading (goals, history, todos, context)
+- Multi-turn dialogue with context retention
+- Personalized recommendations and insights
+- Exploratory data search with semantic recall
+
+**Examples:**
+
+Goal review:
+```
+/aissist:chat What are my current goals?
+```
+
+Progress check:
+```
+/aissist:chat How am I doing on my TypeScript learning goal?
+```
+
+Planning:
+```
+/aissist:chat Help me plan my week. What are my priorities?
+```
+
+Data exploration:
+```
+/aissist:chat What did I learn about authentication?
+```
+
+**Multi-Turn Conversation:**
+```
+You: /aissist:chat What are my goals?
+Claude: You have 5 active goals: [lists them]
+
+You: Tell me more about the API security goal
+Claude: [loads details and provides insights]
+
+You: What should I work on next?
+Claude: [analyzes and recommends specific tasks]
+```
+
+**Use Cases:**
+- 🎯 Goal management - Review, track, and discuss goals
+- 📊 Progress review - Check accomplishments and analyze trends
+- 📅 Planning - Get prioritized recommendations for your day/week
+- 🔍 Data exploration - Search and discuss your tracked information
+- 💡 Advice - Get personalized suggestions based on your data
+
+See [commands/chat.md](./commands/chat.md) for detailed documentation.
 
 ### `/aissist:log` - AI-Enhanced Logging
 
