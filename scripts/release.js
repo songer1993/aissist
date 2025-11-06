@@ -10,11 +10,13 @@ import chalk from 'chalk';
 // This script runs in a controlled maintainer environment only
 function exec(command, options = {}) {
   try {
-    return execSync(command, {
+    const result = execSync(command, {
       encoding: 'utf8',
       stdio: options.silent ? 'pipe' : 'inherit',
       ...options
-    }).trim();
+    });
+    // When stdio is 'inherit', execSync returns undefined
+    return result ? result.trim() : '';
   } catch (error) {
     if (options.ignoreError) {
       return null;
