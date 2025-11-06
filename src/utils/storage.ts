@@ -547,8 +547,10 @@ export interface HistoryEntry {
 /**
  * Get all history entries across all dates
  * Returns entries sorted chronologically (newest first)
+ * @param storagePath - Path to storage directory
+ * @param sinceDate - Optional: Only return entries on or after this date (YYYY-MM-DD format)
  */
-export async function getAllHistory(storagePath: string): Promise<HistoryEntry[]> {
+export async function getAllHistory(storagePath: string, sinceDate?: string): Promise<HistoryEntry[]> {
   const historyDir = join(storagePath, 'history');
   const allHistory: HistoryEntry[] = [];
 
@@ -562,10 +564,14 @@ export async function getAllHistory(storagePath: string): Promise<HistoryEntry[]
 
       if (content) {
         const date = file.replace('.md', '');
-        allHistory.push({
-          date,
-          content,
-        });
+
+        // Filter by sinceDate if provided
+        if (!sinceDate || date >= sinceDate) {
+          allHistory.push({
+            date,
+            content,
+          });
+        }
       }
     }
   } catch (_error) {

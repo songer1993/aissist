@@ -97,8 +97,9 @@ aissist goal list
 # List all active goals in plain text
 aissist goal list --plain
 
-# View goals for specific date
-aissist goal list --date 2024-01-15
+# Filter goals by deadline
+aissist goal list --deadline 2025-12-01
+aissist goal list --deadline "next week"
 
 # Complete a goal
 aissist goal complete <codename>
@@ -157,8 +158,10 @@ aissist history log --from github
 # Show all history entries
 aissist history show
 
-# Show history for specific date
-aissist history show --date 2024-01-15
+# Show history since specific date
+aissist history show --date 2025-01-01
+aissist history show --date "last week"
+aissist history show --date "last month"
 ```
 
 **History Features:**

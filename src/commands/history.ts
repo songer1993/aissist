@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import { join } from 'path';
 import { input } from '@inquirer/prompts';
-import { getStoragePath, appendToMarkdown, readMarkdown, getAllHistory } from '../utils/storage.js';
+import { getStoragePath, appendToMarkdown, getAllHistory } from '../utils/storage.js';
 import { getCurrentDate as getDate, getCurrentTime, parseDate } from '../utils/date.js';
 import { success, error, info } from '../utils/cli.js';
 import { linkToGoal } from '../utils/goal-matcher.js';
@@ -72,41 +72,48 @@ historyCommand
 historyCommand
   .command('show')
   .description('Show all history entries')
-  .option('-d, --date <date>', 'Show history for specific date (YYYY-MM-DD)')
+  .option('-d, --date <date>', 'Show history since date (supports natural language like "last week")')
   .action(async (options) => {
     try {
       const storagePath = await getStoragePath();
 
-      // Date-specific view
+      let sinceDate: string | undefined;
+
+      // Parse date if provided
       if (options.date) {
-        if (!parseDate(options.date)) {
-          error(`Invalid date format: ${options.date}. Use YYYY-MM-DD format.`);
+        // Try parsing as natural language first
+        const naturalDate = parseNaturalDate(options.date);
+        if (naturalDate) {
+          // Use the 'from' date from the range (start of period)
+          sinceDate = naturalDate.from.toISOString().split('T')[0];
+        } else if (parseDate(options.date)) {
+          // Fall back to ISO date parsing
+          sinceDate = options.date;
+        } else {
+          error(`Invalid date format: ${options.date}`);
+          info('Use YYYY-MM-DD format or natural language like "last week", "last month", etc.');
           return;
         }
-
-        const filePath = join(storagePath, 'history', `${options.date}.md`);
-        const content = await readMarkdown(filePath);
-
-        if (!content) {
-          info(`No history found for ${options.date}`);
-          return;
-        }
-
-        console.log(`\nHistory for ${options.date}:\n`);
-        console.log(content);
-        return;
       }
 
-      // Default: show all history
-      const allHistory = await getAllHistory(storagePath);
+      // Get history (all or since date)
+      const allHistory = await getAllHistory(storagePath, sinceDate);
 
       if (allHistory.length === 0) {
-        info('No history found');
+        if (sinceDate) {
+          info(`No history found since ${sinceDate}`);
+        } else {
+          info('No history found');
+        }
         info('Log history with: aissist history log <text>');
         return;
       }
 
-      console.log('\nAll History:\n');
+      if (sinceDate) {
+        console.log(`\nHistory since ${sinceDate}:\n`);
+      } else {
+        console.log('\nAll History:\n');
+      }
 
       // Display with date separators
       for (const entry of allHistory) {

@@ -4,9 +4,7 @@ import { select, input } from '@inquirer/prompts';
 import {
   getStoragePath,
   appendToMarkdown,
-  readMarkdown,
   getExistingCodenames,
-  parseGoalEntries,
   removeGoalEntry,
   completeGoalEntry,
   updateGoalDeadline,
@@ -15,6 +13,7 @@ import {
   type GoalEntry,
 } from '../utils/storage.js';
 import { getCurrentDate, getCurrentTime, parseDate, formatDate } from '../utils/date.js';
+import { parseNaturalDate } from '../utils/date-parser.js';
 import { success, error, info } from '../utils/cli.js';
 import { generateGoalCodename } from '../llm/claude.js';
 import { parseTimeframe } from '../utils/timeframe-parser.js';
@@ -122,48 +121,44 @@ goalCommand
 goalCommand
   .command('list')
   .description('List all active goals (interactive mode by default)')
-  .option('-d, --date <date>', 'Show goals for specific date (YYYY-MM-DD)')
+  .option('-d, --deadline <date>', 'Filter goals by deadline (supports natural language like "next week")')
   .option('-p, --plain', 'Plain text output (non-interactive)')
   .action(async (options) => {
     try {
       const storagePath = await getStoragePath();
 
-      // Date-specific view
-      if (options.date) {
-        if (!parseDate(options.date)) {
-          error(`Invalid date format: ${options.date}. Use YYYY-MM-DD format.`);
+      // Get all active goals
+      let activeGoals = await getActiveGoals(storagePath);
+
+      // Filter by deadline if specified
+      if (options.deadline) {
+        let targetDate: string;
+
+        // Try parsing as natural language first
+        const naturalDate = parseNaturalDate(options.deadline);
+        if (naturalDate) {
+          // Use the 'to' date from the range (end of period)
+          targetDate = formatDate(naturalDate.to);
+        } else if (parseDate(options.deadline)) {
+          // Fall back to ISO date parsing
+          targetDate = options.deadline;
+        } else {
+          error(`Invalid deadline format: ${options.deadline}`);
+          info('Use YYYY-MM-DD format or natural language like "next week", "tomorrow", etc.');
           return;
         }
 
-        const filePath = join(storagePath, 'goals', `${options.date}.md`);
-        const content = await readMarkdown(filePath);
+        // Filter goals with deadlines on or before target date
+        activeGoals = activeGoals.filter(goal =>
+          goal.deadline !== null && goal.deadline <= targetDate
+        );
 
-        if (!content) {
-          info(`No goals found for ${options.date}`);
+        if (activeGoals.length === 0) {
+          info(`No goals found with deadline before ${targetDate}`);
+          info('View all goals with: aissist goal list');
           return;
         }
-
-        const entries = parseGoalEntries(content);
-
-        if (entries.length === 0) {
-          info(`No goals found for ${options.date}`);
-          return;
-        }
-
-        // Plain text mode
-        if (options.plain) {
-          console.log(`\nGoals for ${options.date}:\n`);
-          console.log(content);
-          return;
-        }
-
-        // Interactive mode for specific date
-        await interactiveGoalList(entries, filePath, options.date, storagePath);
-        return;
       }
-
-      // Default: show all active goals
-      const activeGoals = await getActiveGoals(storagePath);
 
       if (activeGoals.length === 0) {
         info('No active goals found');

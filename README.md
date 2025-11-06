@@ -150,8 +150,9 @@ aissist goal list
 # List all active goals (plain text)
 aissist goal list --plain
 
-# View goals from specific date
-aissist goal list --date 2024-01-15
+# Filter goals by deadline
+aissist goal list --deadline 2025-12-01
+aissist goal list --deadline "next week"
 
 # Direct commands
 aissist goal complete complete-project-proposal
@@ -201,8 +202,10 @@ aissist history log "Fixed bug in authentication flow"
 # Show all history entries
 aissist history show
 
-# View history for specific date
-aissist history show --date 2024-01-15
+# View history since specific date
+aissist history show --date 2025-01-01
+aissist history show --date "last week"
+aissist history show --date "last month"
 ```
 
 ### `aissist todo`
