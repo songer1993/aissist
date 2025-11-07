@@ -582,6 +582,51 @@ export async function getAllHistory(storagePath: string, sinceDate?: string): Pr
 }
 
 /**
+ * Get all incomplete todos across all dates
+ * Returns entries sorted by priority (descending) then by date (ascending)
+ * @param storagePath - Path to storage directory
+ */
+export async function getAllIncompleteTodos(storagePath: string): Promise<TodoEntry[]> {
+  const todosDir = join(storagePath, 'todos');
+  const allTodos: TodoEntry[] = [];
+
+  try {
+    const files = await readdir(todosDir);
+    const mdFiles = files
+      .filter(f => f.endsWith('.md') && f !== 'finished') // Exclude finished dir
+      .sort(); // Sort chronologically (oldest first)
+
+    for (const file of mdFiles) {
+      const filePath = join(todosDir, file);
+      const content = await readMarkdown(filePath);
+
+      if (content) {
+        const date = file.replace('.md', '');
+        const entries = parseTodoEntries(content);
+
+        // Add date to each entry and filter to incomplete only
+        const incompleteTodos = entries
+          .filter(e => !e.completed)
+          .map(e => ({ ...e, date }));
+
+        allTodos.push(...incompleteTodos);
+      }
+    }
+  } catch (_error) {
+    // Todos directory doesn't exist or is empty
+  }
+
+  // Sort by priority (descending) then by date (ascending)
+  return sortTodosByPriority(allTodos).sort((a, b) => {
+    if (a.priority !== b.priority) {
+      return b.priority - a.priority; // Higher priority first
+    }
+    // If priorities are equal, sort by date (older first)
+    return (a.date || '').localeCompare(b.date || '');
+  });
+}
+
+/**
  * Todo entry interface
  */
 export interface TodoEntry {
@@ -591,6 +636,7 @@ export interface TodoEntry {
   goal: string | null;
   priority: number;
   rawEntry: string;
+  date?: string; // YYYY-MM-DD format, used when aggregating todos across dates
 }
 
 /**

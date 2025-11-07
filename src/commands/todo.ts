@@ -13,9 +13,11 @@ import {
   updateTodoPriority,
   updateTodoGoal,
   sortTodosByPriority,
+  getAllIncompleteTodos,
   type TodoEntry,
 } from '../utils/storage.js';
-import { getCurrentDate, getCurrentTime, parseDate } from '../utils/date.js';
+import { getCurrentDate, getCurrentTime, parseDate, formatDate } from '../utils/date.js';
+import { parseNaturalDate } from '../utils/date-parser.js';
 import { success, error, info } from '../utils/cli.js';
 import { linkToGoal } from '../utils/goal-matcher.js';
 import { playCompletionAnimation } from '../utils/animations.js';
@@ -94,29 +96,51 @@ todoCommand
  */
 todoCommand
   .command('list')
-  .description('List todos (interactive mode by default)')
-  .option('-d, --date <date>', 'Show todos for specific date (YYYY-MM-DD)')
+  .description('List all incomplete todos (use --date to filter by specific date)')
+  .option('-d, --date <date>', 'Show todos for specific date (YYYY-MM-DD or natural language like "today", "yesterday")')
   .option('-p, --plain', 'Plain text output (non-interactive)')
   .option('-g, --goal <codename>', 'Filter todos by goal codename')
   .action(async (options: { date?: string; plain?: boolean; goal?: string }) => {
     try {
       const storagePath = await getStoragePath();
-      const date = options.date || getCurrentDate();
+      let entries: TodoEntry[];
+      let dateLabel: string;
 
-      if (options.date && !parseDate(options.date)) {
-        error(`Invalid date format: ${options.date}. Use YYYY-MM-DD format.`);
-        return;
+      // If --date flag is provided, filter to specific date or date range
+      if (options.date) {
+        // Try parsing as natural language first
+        const naturalDate = parseNaturalDate(options.date);
+        let targetDate: string;
+
+        if (naturalDate) {
+          // Use the 'from' date for single dates, or handle ranges
+          targetDate = formatDate(naturalDate.from);
+          dateLabel = targetDate;
+        } else if (parseDate(options.date)) {
+          // Fall back to ISO date parsing
+          targetDate = options.date;
+          dateLabel = targetDate;
+        } else {
+          error(`Invalid date format: ${options.date}`);
+          info('Use YYYY-MM-DD format or natural language like "today", "yesterday", "this week"');
+          return;
+        }
+
+        const filePath = join(storagePath, 'todos', `${targetDate}.md`);
+        const content = await readMarkdown(filePath);
+
+        if (!content) {
+          info(`No todos found for ${dateLabel}`);
+          return;
+        }
+
+        entries = parseTodoEntries(content);
+        entries.forEach(e => e.date = targetDate); // Add date to entries
+      } else {
+        // Default: show all incomplete todos across all dates
+        entries = await getAllIncompleteTodos(storagePath);
+        dateLabel = 'all dates';
       }
-
-      const filePath = join(storagePath, 'todos', `${date}.md`);
-      const content = await readMarkdown(filePath);
-
-      if (!content) {
-        info(`No todos found for ${date}`);
-        return;
-      }
-
-      let entries = parseTodoEntries(content);
 
       // Filter by goal if specified
       if (options.goal) {
@@ -127,35 +151,33 @@ todoCommand
         }
       }
 
-      if (entries.length === 0) {
-        info(`No todos found for ${date}`);
+      // Filter to incomplete only (unless plain mode with date filter)
+      const incompleteTodos = entries.filter(e => !e.completed);
+
+      if (incompleteTodos.length === 0) {
+        if (options.date) {
+          info(`No incomplete todos found for ${dateLabel}`);
+        } else {
+          success('All todos completed!');
+        }
         return;
       }
 
-      // Sort by priority (descending) then by timestamp (ascending)
-      entries = sortTodosByPriority(entries);
-
       // Plain text mode
       if (options.plain) {
-        console.log(`\nTodos for ${date}:\n`);
-        entries.forEach((entry, index) => {
+        console.log(`\nTodos${dateLabel !== 'all dates' ? ` for ${dateLabel}` : ''}:\n`);
+        incompleteTodos.forEach((entry, index) => {
           const checkbox = entry.completed ? '[x]' : '[ ]';
+          const dateDisplay = entry.date ? chalk.gray(`[${entry.date}] `) : '';
           const priorityDisplay = entry.priority > 0 ? chalk.gray(` (Priority: ${entry.priority})`) : '';
           const goalDisplay = entry.goal ? chalk.gray(` (Goal: ${entry.goal})`) : '';
-          console.log(`${index + 1}. ${checkbox} ${entry.text}${priorityDisplay}${goalDisplay}`);
+          console.log(`${index + 1}. ${dateDisplay}${checkbox} ${entry.text}${priorityDisplay}${goalDisplay}`);
         });
         return;
       }
 
-      // Interactive mode - show checkbox UI for incomplete todos
-      const incompleteTodos = entries.filter(e => !e.completed);
-
-      if (incompleteTodos.length === 0) {
-        success('All todos completed!');
-        return;
-      }
-
-      await interactiveTodoList(incompleteTodos, filePath, date, storagePath);
+      // Interactive mode
+      await interactiveTodoList(incompleteTodos, '', dateLabel, storagePath);
     } catch (err) {
       error(`Failed to list todos: ${(err as Error).message}`);
       throw err;
@@ -342,12 +364,15 @@ async function interactiveTodoList(
   console.log(chalk.bold(`\nTodos for ${date}:\n`));
 
   const choices = incompleteTodos.map((entry, index) => {
+    const dateDisplay = entry.date && date === 'all dates'
+      ? chalk.gray(`[${entry.date}] `)
+      : '';
     const priorityDisplay = entry.priority > 0
       ? chalk.yellow(`[P:${entry.priority}] `)
       : '';
     const goalDisplay = entry.goal ? chalk.gray(` (Goal: ${entry.goal})`) : '';
     return {
-      name: `${priorityDisplay}${entry.text}${goalDisplay}`,
+      name: `${dateDisplay}${priorityDisplay}${entry.text}${goalDisplay}`,
       value: index,
       checked: false,
     };
@@ -367,7 +392,11 @@ async function interactiveTodoList(
     // Mark selected todos as complete and log to history
     for (const index of selectedIndices) {
       const todo = incompleteTodos[index];
-      await updateTodoStatus(filePath, todo.text, true);
+      // Determine the correct file path for this todo
+      const todoFilePath = todo.date
+        ? join(storagePath, 'todos', `${todo.date}.md`)
+        : filePath;
+      await updateTodoStatus(todoFilePath, todo.text, true);
       await logTodoCompletion(todo, storagePath);
     }
 
