@@ -11,6 +11,7 @@ import { buildProposalPrompt } from '../prompts/proposal-prompt.js';
 import { checkClaudeCodeSession, executeClaudeCodeWithTools } from '../llm/claude.js';
 import { success, error, info, warn } from '../utils/cli.js';
 import { linkToGoal } from '../utils/goal-matcher.js';
+import { renderMarkdown } from '../utils/markdown.js';
 
 const proposeCommand = new Command('propose');
 
@@ -22,6 +23,7 @@ proposeCommand
   .option('--context', 'Include context files in the analysis')
   .option('--tag <tag>', 'Filter by specific tag (e.g., "work", "fitness")')
   .option('-g, --goal [keyword]', 'Link proposals to a goal (optional keyword for matching)')
+  .option('--raw', 'Output raw Markdown (for piping or AI consumption)')
   .action(async (timeframe: string, options) => {
     try {
       const storagePath = await getStoragePath();
@@ -128,8 +130,9 @@ proposeCommand
         const response = await executeClaudeCodeWithTools(prompt, storagePath, ['Grep', 'Read', 'Glob']);
         spinner.succeed('Proposals generated!');
 
-        // Display the response
-        console.log('\n' + response);
+        // Display the response (rendered or raw based on --raw flag)
+        const output = renderMarkdown(response, options.raw);
+        console.log('\n' + output);
         console.log(chalk.dim('\n\nPowered by Claude Code'));
 
         // Offer post-proposal actions

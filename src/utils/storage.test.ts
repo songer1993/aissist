@@ -21,7 +21,7 @@ describe('storage utilities', () => {
 
   beforeEach(async () => {
     // Create a unique test directory in tmp
-    testDir = join(tmpdir(), `aissist-test-${Date.now()}`);
+    testDir = join(tmpdir(), `aissist-test-${Date.now()}-${Math.random().toString(36).substring(7)}`);
     await mkdir(testDir, { recursive: true });
   });
 

@@ -116,13 +116,7 @@ export async function getReadPaths(storagePath: string): Promise<string[]> {
  * Ensure directory exists, create if not
  */
 export async function ensureDirectory(path: string): Promise<void> {
-  try {
-    await mkdir(path, { recursive: true });
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== 'EEXIST') {
-      throw error;
-    }
-  }
+  await mkdir(path, { recursive: true });
 }
 
 /**
@@ -263,7 +257,7 @@ export function parseGoalEntry(entry: string): GoalEntry | null {
 
   // Extract description (blockquote format: lines starting with >)
   // Description comes after goal text, separated by blank line
-  const descriptionMatch = contentWithoutDeadline.match(/\n\n((?:^>.*$\n?)+)/m);
+  const descriptionMatch = contentWithoutDeadline.match(/\n\n((?:>.*(?:\n|$))+)/m);
   let text: string;
   let description: string | null = null;
 

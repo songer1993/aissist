@@ -11,20 +11,24 @@ Ask questions about your goals, history, reflections, and context using AI-power
 ## Usage
 
 ```
-/aissist:recall <query>
+/aissist:recall <query> [--raw]
 ```
 
 ## Arguments
 
 - `query` (required): Your question or search query
 
+## Options
+
+- `--raw`: Output raw Markdown without terminal formatting (recommended for Claude Code)
+
 ## Examples
 
 ```
-/aissist:recall "what did I work on last week?"
-/aissist:recall "show my progress on the authentication feature"
-/aissist:recall "what goals am I currently working on?"
-/aissist:recall "what did I learn about React this month?"
+/aissist:recall "what did I work on last week?" --raw
+/aissist:recall "show my progress on the authentication feature" --raw
+/aissist:recall "what goals am I currently working on?" --raw
+/aissist:recall "what did I learn about React this month?" --raw
 ```
 
 ## What it does
@@ -41,6 +45,7 @@ Ask questions about your goals, history, reflections, and context using AI-power
 
 ## Tips
 
+- Always use `--raw` flag when using with Claude Code for proper markdown parsing
 - Ask natural questions - the AI understands context
 - Be specific about timeframes for better results
 - You can ask about goals, past work, reflections, or any logged context

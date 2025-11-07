@@ -469,6 +469,7 @@ aissist propose [options] [timeframe]
 - `--tag <tag>` - Filter by specific tag
 - `--context` - Include context files in the analysis
 - `--debug` - Display debug information (prompt, data summary)
+- `--raw` - Output raw Markdown without terminal formatting (for AI consumption)
 
 **Examples:**
 ```bash
@@ -524,14 +525,17 @@ AI-powered semantic search across all aissist data.
 
 **Syntax:**
 ```bash
-aissist recall <query>
+aissist recall <query> [--raw]
 ```
+
+**Options:**
+- `--raw` - Output raw Markdown without terminal formatting (recommended when using within Claude Code)
 
 **Examples:**
 ```bash
-aissist recall "what did I learn about TypeScript?"
-aissist recall "show my progress on fitness goals"
-aissist recall "when did I start the authentication project?"
+aissist recall "what did I learn about TypeScript?" --raw
+aissist recall "show my progress on fitness goals" --raw
+aissist recall "when did I start the authentication project?" --raw
 ```
 
 **Requirements:**

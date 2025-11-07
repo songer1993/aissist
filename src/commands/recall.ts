@@ -4,8 +4,9 @@ import { getStoragePath } from '../utils/storage.js';
 import { searchMarkdownFiles, filterTopMatches } from '../utils/search.js';
 import { checkClaudeCodeSession, recallWithClaudeCode } from '../llm/claude.js';
 import { info, header } from '../utils/cli.js';
+import { renderMarkdown } from '../utils/markdown.js';
 
-export async function recallCommand(query: string): Promise<void> {
+export async function recallCommand(query: string, options?: { raw?: boolean }): Promise<void> {
   const spinner = ora('Searching your memories...').start();
 
   try {
@@ -23,7 +24,9 @@ export async function recallCommand(query: string): Promise<void> {
         spinner.succeed('Recall complete!');
 
         header('Answer');
-        console.log(answer);
+        // Render markdown (or raw if --raw flag is set)
+        const output = renderMarkdown(answer, options?.raw);
+        console.log(output);
 
         console.log(chalk.dim('\n\nPowered by Claude Code with semantic file analysis'));
         return;

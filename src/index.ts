@@ -69,9 +69,10 @@ program
   .command('recall')
   .description('AI-powered semantic search')
   .argument('<query>', 'Search query')
-  .action(async (query) => {
+  .option('--raw', 'Output raw Markdown (for piping or AI consumption)')
+  .action(async (query, options) => {
     try {
-      await recallCommand(query);
+      await recallCommand(query, options);
     } catch (error) {
       handleError(error);
     }

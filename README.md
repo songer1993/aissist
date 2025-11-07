@@ -318,6 +318,53 @@ aissist reflect show      # View today's reflections
 aissist reflect show --date 2024-01-15
 ```
 
+### `aissist propose`
+
+Generate AI-powered action proposals based on your goals, history, and reflections using Claude Code.
+
+**Arguments:**
+- `[timeframe]` - Timeframe for proposals (default: "today")
+  - Examples: "today", "this week", "next quarter", "2026 Q1"
+
+**Options:**
+- `--reflect` - Prompt for a quick reflection before generating proposals
+- `--debug` - Display debug information (prompt, data summary)
+- `--context` - Include context files in the analysis
+- `--tag <tag>` - Filter by specific tag (e.g., "work", "fitness")
+- `-g, --goal [keyword]` - Link proposals to a goal (optional keyword for matching)
+- `--raw` - Output raw Markdown without terminal formatting (for piping or AI consumption)
+
+**How it works:**
+- Analyzes your goals, history, todos, and reflections from the past 30 days
+- Uses Claude Code to generate contextual action proposals
+- Offers to save proposals as todos, goals, or markdown
+- Output is beautifully formatted for terminal viewing by default
+
+**Examples:**
+```bash
+# Generate proposals for today
+aissist propose
+
+# Generate proposals for a specific timeframe
+aissist propose "this week"
+aissist propose "next quarter"
+aissist propose "2026 Q1"
+
+# Include a quick reflection before proposing
+aissist propose --reflect
+
+# Filter by tag
+aissist propose --tag work
+
+# Link proposals to a specific goal
+aissist propose --goal "launch-mvp"
+
+# Raw output for AI agents or piping
+aissist propose --raw > proposals.md
+```
+
+**Note:** Requires Claude Code CLI to be installed and authenticated.
+
 ### `aissist recall`
 
 AI-powered semantic search across all your memories using Claude Code's file analysis capabilities.
@@ -325,11 +372,15 @@ AI-powered semantic search across all your memories using Claude Code's file ana
 **Arguments:**
 - `<query>` - Your search question (natural language)
 
+**Options:**
+- `--raw` - Output raw Markdown without terminal formatting (for piping or AI consumption)
+
 **How it works:**
 - Claude Code uses Grep, Read, and Glob tools to semantically analyze your memory files
 - Finds related concepts, not just keyword matches (e.g., searching "productivity" also finds "efficiency", "time management")
 - No timeout issues - handles large memory collections efficiently
 - Falls back to keyword search if Claude Code is unavailable
+- Output is beautifully formatted for terminal viewing by default
 
 **Examples:**
 ```bash
@@ -341,6 +392,9 @@ aissist recall "work accomplishments this month"
 # Complex queries
 aissist recall "compare my goals from last week to this week"
 aissist recall "what are my thoughts on productivity?"
+
+# Raw output for piping or AI agents
+aissist recall "my TypeScript learning" --raw | pbcopy
 ```
 
 **Note:** Requires Claude Code CLI to be installed and authenticated. Falls back to keyword-based search if Claude Code is unavailable.
