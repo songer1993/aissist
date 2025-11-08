@@ -40,18 +40,15 @@ The system SHALL load and aggregate relevant data from storage based on the spec
 - **THEN** the system displays a message suggesting to use `aissist goal add`, `aissist history add`, or `aissist reflect` first
 
 ### Requirement: Claude-Powered Proposal Generation
-The system SHALL generate actionable proposals using Claude Code CLI with file analysis tools.
+The system SHALL use Claude Code CLI to generate intelligent, context-aware action proposals based on user data, AND support goal-focused generation.
 
-#### Scenario: Build context-rich prompt (MODIFIED)
-- **WHEN** invoking Claude for proposal generation
-- **THEN** the system constructs a prompt including:
-  - Timeframe context (e.g., "planning for Q1 2026", or "immediate action for Right Now")
-  - Summary of goals (count and key themes)
-  - Recent history patterns (frequency, topics)
-  - Available reflections
-  - Instruction to analyze data and propose:
-    - **3-5 actionable items** for standard timeframes
-    - **Exactly 1 actionable item** for "now" timeframe, optimized for 1-2 hour completion
+#### Scenario: Build goal-focused prompt
+- **WHEN** building a prompt with goal information
+- **THEN** the prompt includes a "Goal Focus" section
+- **AND** states the goal codename, text, and description (if available)
+- **AND** mentions the goal deadline (if available)
+- **AND** instructs Claude to "prioritize proposals that directly advance this goal"
+- **AND** adapts instructions based on timeframe type (deadline-based, timeless, or regular)
 
 ### Requirement: Interactive Proposal Follow-up
 The system SHALL offer interactive actions after displaying the proposal.
@@ -110,32 +107,44 @@ The system SHALL support debug output for prompt inspection.
 - **THEN** the system prints the count and file paths of loaded goals, history, and reflections
 
 ### Requirement: Link Proposals to Goals
-The system SHALL allow users to optionally link AI-generated proposals to active goals through keyword matching or interactive selection.
+The system SHALL allow users to optionally link AI-generated proposals to active goals through keyword matching or interactive selection, AND generate goal-focused proposals when a goal is specified.
 
-#### Scenario: Generate proposals with goal keyword
+#### Scenario: Generate goal-focused proposals without explicit timeframe
+- **WHEN** the user runs `aissist propose --goal "project"` (no timeframe argument)
+- **THEN** the system performs keyword matching to select a goal
+- **AND** loads the full goal details (text, description, deadline)
+- **AND** if goal has a deadline: calculates timeframe from now until deadline
+- **AND** if goal has NO deadline: uses timeless planning mode
+- **AND** builds a goal-focused prompt including goal context
+- **AND** instructs Claude to generate proposals specifically to advance that goal
+
+#### Scenario: Generate goal-focused proposals with explicit timeframe
 - **WHEN** the user runs `aissist propose "this week" --goal "project"`
-- **THEN** the system generates proposals for the specified timeframe
-- **AND** performs keyword matching against active goals
-- **AND** links the proposals to the matching goal if exactly one match is found
-- **AND** prompts for selection if multiple or no matches are found
+- **THEN** the system uses the explicit timeframe ("this week")
+- **AND** performs keyword matching to select a goal
+- **AND** loads the full goal details (text, description, deadline)
+- **AND** builds a goal-focused prompt including goal context
+- **AND** instructs Claude to generate proposals for that timeframe that advance the goal
+- **AND** goal deadline is informational context (not the planning timeframe)
 
-#### Scenario: Generate proposals with goal flag (no keyword)
-- **WHEN** the user runs `aissist propose "today" --goal`
-- **THEN** the system generates proposals for the specified timeframe
-- **AND** displays an interactive prompt showing all active goals
-- **AND** allows the user to select a goal or skip linking
+#### Scenario: Goal with deadline auto-timeframe calculation
+- **WHEN** a goal has deadline "2025-12-31" and user runs `aissist propose --goal <codename>`
+- **THEN** the system calculates timeframe from current date until 2025-12-31
+- **AND** creates label like "Now until December 31, 2025"
+- **AND** prompt emphasizes working backward from deadline
 
-#### Scenario: Store goal link when saving proposals as goals
-- **WHEN** a user saves proposals as goals and a goal link was specified
-- **THEN** the saved goal entries include metadata: `Goal: codename`
-- **AND** the metadata indicates the parent/related goal
-- **AND** helps track proposal-to-goal relationships
+#### Scenario: Goal without deadline timeless planning
+- **WHEN** a goal has no deadline and user runs `aissist propose --goal <codename>`
+- **THEN** the system uses timeless planning mode
+- **AND** creates label like "Comprehensive Plan"
+- **AND** prompt emphasizes creating a strategic plan regardless of time constraints
+- **AND** Claude generates milestone-based plan without time pressure
 
-#### Scenario: Generate proposals without goal flag
-- **WHEN** the user runs `aissist propose [timeframe]` without the `--goal` flag
-- **THEN** the system generates proposals normally
-- **AND** does not prompt for goal selection
-- **AND** no goal metadata is added to saved proposals
+#### Scenario: Distinguish explicit vs default timeframe with goal
+- **WHEN** user runs `aissist propose --goal X` (timeframe defaults to 'today')
+- **THEN** the system treats this as "no explicit timeframe" and applies smart timeframe
+- **WHEN** user runs `aissist propose today --goal X` (explicitly says 'today')
+- **THEN** the system uses 'today' as the timeframe and adds goal focus
 
 ### Requirement: Save Proposals as Markdown Files
 The system SHALL allow users to save AI-generated proposals as Markdown files in a dedicated proposals folder.
@@ -262,4 +271,40 @@ The system SHALL recognize "now" as a special timeframe for immediate action pla
 - **WHEN** the user provides an invalid timeframe
 - **THEN** the error message includes "now" in the supported formats list:
   - "- now (single immediate action)"
+
+### Requirement: Goal Details Loading
+The system SHALL load full goal details by codename for goal-focused proposal generation.
+
+#### Scenario: Load goal by codename
+- **WHEN** the system needs to load goal details for proposal generation
+- **THEN** it uses the goal codename from the linkToGoal result
+- **AND** searches goal markdown files for matching codename
+- **AND** returns goal entry with codename, text, description, and deadline
+- **AND** returns null if goal with that codename does not exist
+
+#### Scenario: Handle missing goal gracefully
+- **WHEN** a goal codename is selected but the goal cannot be found
+- **THEN** the system displays a warning
+- **AND** falls back to generating proposals without goal focus
+- **AND** does not crash or error fatally
+
+### Requirement: Deadline-Based Timeframe Calculation
+The system SHALL calculate proposal timeframes based on goal deadlines when appropriate.
+
+#### Scenario: Create timeframe from deadline date
+- **WHEN** creating a timeframe for a goal with deadline "2025-12-31"
+- **THEN** the system sets start date to current date
+- **AND** sets end date to the goal deadline
+- **AND** creates a descriptive label like "Now until December 31, 2025"
+- **AND** returns a valid TimeframeResult
+
+#### Scenario: Handle past deadlines
+- **WHEN** a goal deadline is in the past
+- **THEN** the system still creates the timeframe (for retrospective analysis)
+- **AND** optionally warns the user that the deadline has passed
+
+#### Scenario: Handle same-day deadlines
+- **WHEN** a goal deadline is today
+- **THEN** the system creates a same-day timeframe
+- **AND** generates urgent, immediate action proposals
 
