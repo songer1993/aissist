@@ -2,9 +2,10 @@ import { Command } from 'commander';
 import { join } from 'path';
 import { readFile, readdir, access } from 'fs/promises';
 import { getStoragePath, appendToMarkdown, readMarkdown, ensureDirectory } from '../utils/storage.js';
-import { getCurrentDate, getCurrentTime, parseDate } from '../utils/date.js';
+import { getCurrentDate, getCurrentTime, parseDate, formatDate } from '../utils/date.js';
 import { success, error, info } from '../utils/cli.js';
 import { linkToGoal } from '../utils/goal-matcher.js';
+import { parseNaturalDate } from '../utils/date-parser.js';
 
 const contextCommand = new Command('context');
 
@@ -20,14 +21,33 @@ async function isFile(path: string): Promise<boolean> {
 
 contextCommand
   .command('log')
-  .description('Log context-specific information')
+  .description('Log context-specific information (use --date for retroactive logging)')
   .argument('<context>', 'Context name (e.g., work, diet, fitness)')
   .argument('<input>', 'Text or file path to log')
   .option('-g, --goal [keyword]', 'Link this context entry to a goal (optional keyword for matching)')
-  .action(async (context: string, input: string, options: { goal?: string | boolean }) => {
+  .option('-d, --date <date>', 'Date for the entry (YYYY-MM-DD or natural language like "yesterday")')
+  .action(async (context: string, input: string, options: { goal?: string | boolean; date?: string }) => {
     try {
       const storagePath = await getStoragePath();
-      const date = getCurrentDate();
+
+      // Parse date if provided, otherwise use current date
+      let date = getCurrentDate();
+      if (options.date) {
+        // Try parsing as natural language first
+        const naturalDate = parseNaturalDate(options.date);
+        if (naturalDate) {
+          // Use the 'from' date from the range (start of period)
+          date = formatDate(naturalDate.from);
+        } else if (parseDate(options.date)) {
+          // Fall back to ISO date parsing
+          date = options.date;
+        } else {
+          error(`Invalid date format: ${options.date}`);
+          info('Use YYYY-MM-DD format or natural language like "yesterday", "last Monday", etc.');
+          return;
+        }
+      }
+
       const time = getCurrentTime();
       const contextPath = join(storagePath, 'context', context);
       await ensureDirectory(contextPath);

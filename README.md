@@ -191,15 +191,23 @@ Completed: 2025-11-10
 
 ### `aissist history`
 
-Track daily activities and events.
+Track daily activities and events with support for retroactive logging.
 
 **Subcommands:**
-- `log <text>` - Log a history entry
+- `log <text> [--date <date>]` - Log a history entry (supports retroactive dates)
 - `show [--date <date>]` - Show all history entries (or specific date)
 
 **Examples:**
 ```bash
+# Log to today (default)
 aissist history log "Fixed bug in authentication flow"
+
+# Log to a past date (ISO format)
+aissist history log "Completed design review" --date 2025-11-05
+
+# Log to a past date (natural language)
+aissist history log "Team standup" --date yesterday
+aissist history log "Sprint planning" --date "last Monday"
 
 # Show all history entries
 aissist history show
@@ -286,18 +294,28 @@ Goal: complete-mvp
 
 ### `aissist context`
 
-Manage context-specific information.
+Manage context-specific information with support for retroactive logging.
 
 **Subcommands:**
-- `log <context> <input>` - Log text or file to a context
+- `log <context> <input> [--date <date>]` - Log text or file to a context (supports retroactive dates)
 - `list` - List all contexts
 - `show <context> [--date <date>]` - Show entries for a context
 - `ingest <context> <directory>` - Bulk ingest files from directory
 
 **Examples:**
 ```bash
+# Log to today (default)
 aissist context log work "Sprint planning meeting notes"
 aissist context log diet ./meal-plan.txt
+
+# Log to a past date (ISO format)
+aissist context log work "Design review notes" --date 2025-11-05
+
+# Log to a past date (natural language)
+aissist context log fitness "Morning run" --date yesterday
+aissist context log diet ./old-meal-plan.txt --date "last Monday"
+
+# Other commands
 aissist context list
 aissist context show work
 aissist context ingest work ./project-docs

@@ -283,7 +283,7 @@ Log and review daily activities and accomplishments.
 
 ### history log
 
-Log a history entry.
+Log a history entry with support for retroactive logging.
 
 **Syntax:**
 ```bash
@@ -291,15 +291,33 @@ aissist history log [options] [text]
 ```
 
 **Options:**
+- `-d, --date <date>` - Log to a specific date (ISO YYYY-MM-DD or natural language like "yesterday")
 - `-g, --goal <codename>` - Link entry to a goal
 - `-f, --from <source>` - Import from source (github)
 
 **Examples:**
 ```bash
+# Log to today (default)
 aissist history log "Completed code review for authentication feature"
-aissist history log "Finished tutorial chapter 3" --goal learn-typescript-fundamentals
+
+# Retroactive logging with ISO date
+aissist history log "Design meeting notes" --date 2025-11-05
+
+# Retroactive logging with natural language
+aissist history log "Team standup" --date yesterday
+aissist history log "Sprint planning" --date "last Monday"
+
+# With goal linking
+aissist history log "Finished tutorial chapter 3" --goal learn-typescript-fundamentals --date yesterday
+
+# GitHub import
 aissist history log --from github  # Import from GitHub (requires gh CLI)
 ```
+
+**Retroactive Logging:**
+- Supports ISO dates (YYYY-MM-DD) and natural language ("yesterday", "last Monday")
+- Timestamp (HH:MM) reflects current time, not the retroactive date
+- Default behavior (no --date flag) logs to today
 
 **GitHub Import:**
 - Requires GitHub CLI (`gh`) installed and authenticated
@@ -342,24 +360,40 @@ Organize context-specific information (work, diet, fitness, projects, etc.).
 
 ### context log
 
-Log context-specific information.
+Log context-specific information with support for retroactive logging.
 
 **Syntax:**
 ```bash
 aissist context log [options] <context> <input>
 ```
 
+**Options:**
+- `-d, --date <date>` - Log to a specific date (ISO YYYY-MM-DD or natural language like "yesterday")
+- `-g, --goal <codename>` - Link entry to a goal
+
 **Examples:**
 ```bash
+# Log to today (default)
 aissist context log work "Sprint planning: focus on authentication module"
 aissist context log diet "Meal prep for the week: chicken, rice, vegetables"
 aissist context log fitness "Workout: 5k run in 28 minutes"
+
+# Retroactive logging with ISO date
+aissist context log work "Design review notes" --date 2025-11-05
+
+# Retroactive logging with natural language
+aissist context log fitness "Morning run" --date yesterday
+aissist context log work "Team meeting" --date "last Monday"
+
+# With goal linking
+aissist context log work "MVP planning" --goal launch-mvp --date yesterday
 ```
 
 **Behavior:**
 - Creates/appends to `contexts/<context>/YYYY-MM-DD.md`
-- Timestamps each entry
+- Timestamps each entry (HH:MM reflects current time even for retroactive dates)
 - Supports any context name (lowercase recommended)
+- Default behavior (no --date flag) logs to today
 
 ### context list
 

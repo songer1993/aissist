@@ -2,7 +2,7 @@ import { Command } from 'commander';
 import { join } from 'path';
 import { input } from '@inquirer/prompts';
 import { getStoragePath, appendToMarkdown, getAllHistory } from '../utils/storage.js';
-import { getCurrentDate as getDate, getCurrentTime, parseDate } from '../utils/date.js';
+import { getCurrentDate as getDate, getCurrentTime, parseDate, formatDate } from '../utils/date.js';
 import { success, error, info } from '../utils/cli.js';
 import { linkToGoal } from '../utils/goal-matcher.js';
 import { parseNaturalDate, formatDateRange, getDateExamples } from '../utils/date-parser.js';
@@ -20,11 +20,12 @@ const historyCommand = new Command('history');
 
 historyCommand
   .command('log')
-  .description('Log a history entry (use --goal to link to a goal, --from to import from GitHub)')
+  .description('Log a history entry (use --goal to link to a goal, --from to import from GitHub, --date for retroactive logging)')
   .argument('[text]', 'History entry text (omit when using --from)')
   .option('-g, --goal [keyword]', 'Link this history entry to a goal (optional keyword for matching)')
   .option('-f, --from <timeframe>', 'Import GitHub activity from timeframe (e.g., "this week", "today")')
-  .action(async (text: string | undefined, options: { goal?: string | boolean; from?: string }) => {
+  .option('-d, --date <date>', 'Date for the entry (YYYY-MM-DD or natural language like "yesterday")')
+  .action(async (text: string | undefined, options: { goal?: string | boolean; from?: string; date?: string }) => {
     // Handle GitHub import
     if (options.from) {
       await importFromGitHub(options.from);
@@ -37,7 +38,25 @@ historyCommand
     }
     try {
       const storagePath = await getStoragePath();
-      const date = getDate();
+
+      // Parse date if provided, otherwise use current date
+      let date = getDate();
+      if (options.date) {
+        // Try parsing as natural language first
+        const naturalDate = parseNaturalDate(options.date);
+        if (naturalDate) {
+          // Use the 'from' date from the range (start of period)
+          date = formatDate(naturalDate.from);
+        } else if (parseDate(options.date)) {
+          // Fall back to ISO date parsing
+          date = options.date;
+        } else {
+          error(`Invalid date format: ${options.date}`);
+          info('Use YYYY-MM-DD format or natural language like "yesterday", "last Monday", etc.');
+          return;
+        }
+      }
+
       const time = getCurrentTime();
       const filePath = join(storagePath, 'history', `${date}.md`);
 
