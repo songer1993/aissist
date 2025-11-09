@@ -70,6 +70,7 @@ Use these commands directly in Claude Code conversations:
 
 ```
 /aissist:log Fixed authentication bug, took 3 hours
+/aissist:log Yesterday I completed the API refactoring
 /aissist:log-github "this week"
 /aissist:recall "what did I work on last month?"
 /aissist:report "this week" --purpose standup
@@ -174,6 +175,14 @@ Log your work with AI enhancement and automatic goal linking. Claude rephrases r
 /aissist:log [attach screenshot] Updated dashboard design
 ```
 
+**Retroactive Logging (automatic date detection):**
+```
+/aissist:log Yesterday I fixed the critical production bug
+/aissist:log Last Friday we had the sprint planning session
+/aissist:log Two days ago I deployed the new feature
+```
+→ Just mention the date naturally - Claude automatically detects and extracts it. If no date is mentioned, defaults to today.
+
 **Multi-part Work:**
 ```
 /aissist:log Fixed auth bug, refactored DB layer, updated tests
@@ -187,6 +196,7 @@ Log your work with AI enhancement and automatic goal linking. Claude rephrases r
 - Automatically links to relevant goals
 - Intelligently routes to history (accomplishments) or context (notes)
 - Splits multi-part work into granular entries
+- Automatically detects dates mentioned in text for retroactive logging
 
 See [commands/log.md](./commands/log.md) for detailed documentation and routing examples.
 

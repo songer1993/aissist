@@ -20,9 +20,21 @@ Or with images:
 /aissist:log [attach image(s)] <text>
 ```
 
+**For retroactive logging** (when you want to log something that happened on a past date):
+
+Simply mention the date naturally in your text - Claude will detect it automatically:
+```
+/aissist:log Yesterday I fixed the critical auth bug
+/aissist:log Last Friday we completed the sprint planning session
+/aissist:log On Monday I deployed the new feature to production
+/aissist:log Two days ago I had an emergency production fix
+```
+
+If no date is mentioned, the log defaults to today.
+
 ## Arguments
 
-- `text` (required): Freeform description of what you worked on or accomplished. Can be rough notes - Claude will enhance and structure it.
+- `text` (required): Freeform description of what you worked on or accomplished. Can be rough notes - Claude will enhance and structure it. If you mention when the work was done (e.g., "yesterday", "last Friday"), Claude automatically detects it and logs with that date. Otherwise, defaults to today.
 
 ## Examples
 
@@ -72,36 +84,77 @@ Claude extracts metrics → `"Performance optimization: Reduced memory usage by 
 
 Claude compares → `"Redesigned login page: modernized UI with cleaner layout, improved accessibility, and streamlined authentication flow"`
 
+### Retroactive Logging (Automatic Date Detection)
+
+**Just write naturally** - Claude extracts the date automatically:
+
+```
+/aissist:log Yesterday I fixed the authentication bug
+```
+→ Claude detects "yesterday" and calls: `aissist history log "Fixed authentication bug" --date yesterday`
+
+```
+/aissist:log Last Friday I completed the API refactoring work
+```
+→ Claude detects "last Friday" and calls: `aissist history log "Completed API refactoring work" --date "last friday"`
+
+```
+/aissist:log On January 15th I deployed the new feature
+```
+→ Claude detects "January 15th" and calls: `aissist history log "Deployed new feature" --date 2025-01-15`
+
+```
+/aissist:log Two days ago I had an emergency production hotfix
+```
+→ Claude detects "two days ago" and calls: `aissist history log "Emergency production hotfix" --date "2 days ago"`
+
+```
+/aissist:log Fixed the payment processing bug
+```
+→ No date mentioned, defaults to today: `aissist history log "Fixed payment processing bug"`
+
+**How it works**: Claude intelligently detects temporal references in your text (yesterday, last week, specific dates, etc.), extracts them, removes them from the enhanced log text, and automatically adds the `--date` flag to the command. Just write naturally - no need to remember any flags!
+
+**Use case**: When you forget to log your work at the time, or when you're catching up on logging past accomplishments. Simply mention when it happened in your text, and Claude handles the rest.
+
 ## What it does
 
 This command leverages Claude's AI capabilities to intelligently route and structure your input:
 
 1. **Accept input**: Receives your text description and any attached images/screenshots
 
-2. **Analyze images** (if provided): Uses Claude's vision capabilities to:
+2. **Extract temporal references**: Detects date/time mentions in your text:
+   - Natural language: "yesterday", "last week", "two days ago", "last Friday"
+   - Specific dates: "January 15th", "on Monday", "2025-01-15"
+   - Relative timeframes: "3 days ago", "last month"
+   - Removes the temporal reference from the text to avoid duplication
+   - Prepares the `--date` flag for the CLI command
+
+3. **Analyze images** (if provided): Uses Claude's vision capabilities to:
    - Describe UI changes and visual improvements
    - Extract metrics from graphs and performance charts
    - Identify key details from screenshots or diagrams
    - Compare before/after images to summarize changes
 
-3. **Enhance text**: Rephrases and structures your input into clear, professional entries:
+4. **Enhance text**: Rephrases and structures your input into clear, professional entries:
    - Preserves exact metrics, numbers, and time estimates
+   - Removes temporal references (already extracted in step 2)
    - Converts rough notes into polished descriptions
    - Maintains technical accuracy while improving clarity
 
-4. **Analyze content type and structure**: Examines the enhanced content to determine:
+5. **Analyze content type and structure**: Examines the enhanced content to determine:
    - **Multi-part detection**: Are there multiple distinct accomplishments or tasks?
    - **Content classification**: Is this task-oriented (accomplishment) or informational (notes/context)?
    - **Routing decision**: Should this go to history, context, or both?
 
-5. **Check goals**: Runs `aissist goal list` to see your active goals (for history entries)
+6. **Check goals**: Runs `aissist goal list` to see your active goals (for history entries)
 
-6. **Route intelligently** based on content analysis:
+7. **Route intelligently** based on content analysis:
 
    **For task-oriented content (accomplishments):**
    - Split into multiple logs if multiple distinct tasks identified
    - For each task, perform semantic goal matching independently
-   - Execute `aissist history log "<enhanced-text>"` with optional `--goal <codename>`
+   - Execute `aissist history log "<enhanced-text>"` with optional `--goal <codename>` and `--date <date>` if specified
    - Maximize granularity while maintaining logical grouping
 
    **For informational content (notes/context):**
@@ -118,7 +171,7 @@ This command leverages Claude's AI capabilities to intelligently route and struc
    - Route notes to context (with name inference)
    - Execute both commands as needed
 
-7. **Confirm with transparency**: Shows you what was created:
+8. **Confirm with transparency**: Shows you what was created:
    - Number of history entries and which goals they're linked to
    - Number of context entries and their context names
    - Clear summary of all routing decisions made
@@ -133,6 +186,16 @@ This command leverages Claude's AI capabilities to intelligently route and struc
 
 **Input**: `Improved performance from 500ms to 120ms by optimizing queries and adding cache`
 **Enhanced**: `"Optimized API performance: improved database queries and implemented caching, reducing response time from 500ms to 120ms"`
+
+**Input**: `Yesterday I fixed the authentication bug took me like 3 hours`
+**Date Extracted**: `yesterday`
+**Enhanced**: `"Resolved authentication bug in login flow (3 hours)"`
+**Command**: `aissist history log "Resolved authentication bug in login flow (3 hours)" --date yesterday`
+
+**Input**: `Last Friday we completed the sprint planning and backlog grooming session`
+**Date Extracted**: `last Friday`
+**Enhanced**: `"Completed sprint planning and backlog grooming session"`
+**Command**: `aissist history log "Completed sprint planning and backlog grooming session" --date "last friday"`
 
 ### Goal Linking
 
@@ -373,11 +436,13 @@ aissist context log architecture "System architecture: Microservices with API ga
 - **Be concise or detailed - both work**: You can provide rough notes or detailed descriptions - Claude will handle enhancement and routing
 - **Include metrics**: Specific numbers, percentages, or time estimates are preserved exactly
 - **Attach images**: Screenshots of UI changes, performance graphs, or error messages provide valuable context
+- **Mention dates naturally for retroactive logging**: Just say "yesterday I fixed..." or "last Friday we completed..." - Claude extracts the date automatically
 - **Trust the AI**: Claude will intelligently decide whether to:
   - Split into multiple logs or keep as one
   - Route to history (accomplishments) or context (information)
   - Link to relevant goals automatically
-- **Don't overthink it**: Just describe what you worked on or learned - the routing will be handled intelligently
+  - Extract and apply the correct date from your text
+- **Don't overthink it**: Just describe what you worked on or learned - the routing and date handling will be done intelligently
 
 ## See Also
 
