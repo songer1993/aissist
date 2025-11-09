@@ -218,6 +218,8 @@ aissist history show --date "last week"
 aissist history show --date "last month"
 ```
 
+![Developer Progress Tracking](demos/demo-1-progress.gif)
+
 ### `aissist todo`
 
 Manage small, actionable tasks with optional goal linkage. Completed todos are automatically logged to history.
@@ -291,6 +293,8 @@ Completed from TODO
 
 Goal: complete-mvp
 ```
+
+![Goal & Todo Management](demos/demo-3-todos.gif)
 
 ### `aissist context`
 
@@ -421,6 +425,8 @@ aissist recall "my TypeScript learning" --raw | pbcopy
 ```
 
 **Note:** Requires Claude Code CLI to be installed and authenticated. Falls back to keyword-based search if Claude Code is unavailable.
+
+![Semantic Memory Search](demos/demo-2-memory.gif)
 
 ### `aissist path`
 
