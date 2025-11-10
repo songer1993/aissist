@@ -188,7 +188,14 @@ contextCommand
           const time = getCurrentTime();
           const filePath = join(contextPath, `${date}.md`);
 
-          const logEntry = `## ${time}\n\n**Source:** File: ${entry.name}\n\n${fileContent}`;
+          const contextEntry: ContextItemEntry = {
+            timestamp: time,
+            source: `file:${entry.name}`,
+            text: fileContent,
+            goal: null,
+            rawEntry: '', // Will be set by serializer
+          };
+          const logEntry = serializeContextItemEntryYaml(contextEntry);
           await appendToMarkdown(filePath, logEntry);
           count++;
         }

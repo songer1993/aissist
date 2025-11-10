@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import { join } from 'path';
 import { input } from '@inquirer/prompts';
-import { getStoragePath, appendToMarkdown, readMarkdown } from '../utils/storage.js';
+import { getStoragePath, appendToMarkdown, readMarkdown, serializeReflectionEntryYaml, type ReflectionEntry } from '../utils/storage.js';
 import { getCurrentDate, getCurrentTime, parseDate } from '../utils/date.js';
 import { success, error, info } from '../utils/cli.js';
 import { linkToGoal } from '../utils/goal-matcher.js';
@@ -57,13 +57,15 @@ reflectCommand
         return;
       }
 
-      let entry = `## Reflection at ${time}\n\n${responses.join('\n\n')}`;
+      // Create reflection entry
+      const reflectionEntry: ReflectionEntry = {
+        timestamp: time,
+        text: responses.join('\n\n'),
+        goal: goalLinkResult.codename || null,
+        rawEntry: '', // Will be set by serializer
+      };
 
-      // Add goal metadata if a goal was linked
-      if (goalLinkResult.codename) {
-        entry += `\n\nGoal: ${goalLinkResult.codename}`;
-      }
-
+      const entry = serializeReflectionEntryYaml(reflectionEntry);
       await appendToMarkdown(filePath, entry);
 
       if (goalLinkResult.codename) {

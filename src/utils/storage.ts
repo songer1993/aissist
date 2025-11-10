@@ -1487,3 +1487,108 @@ export function parseContextItemEntries(content: string): ContextItemEntry[] {
   const entries = content.split(/(?=^## )/gm).filter(e => e.trim());
   return entries.map(parseContextItemEntryAuto).filter((e): e is ContextItemEntry => e !== null);
 }
+
+// ============================================================================
+// REFLECTION ENTRIES
+// ============================================================================
+
+/**
+ * Reflection entry interface
+ */
+export interface ReflectionEntry {
+  timestamp: string;
+  text: string;
+  goal: string | null;
+  rawEntry: string;
+}
+
+/**
+ * Serialize a reflection entry to YAML front matter format
+ */
+export function serializeReflectionEntryYaml(reflection: ReflectionEntry): string {
+  const metadata: Record<string, unknown> = {
+    schema_version: '1.0',
+    timestamp: reflection.timestamp,
+  };
+
+  if (reflection.goal) {
+    metadata.goal = reflection.goal;
+  }
+
+  return serializeYamlFrontMatter(metadata, reflection.text);
+}
+
+/**
+ * Parse a reflection entry from YAML format
+ */
+export function parseReflectionEntryYaml(entry: string): ReflectionEntry | null {
+  const result = parseYamlFrontMatter(entry);
+  if (!result) return null;
+
+  const [metadata, body] = result;
+
+  normalizeSchemaVersion(metadata.schema_version as string | undefined);
+
+  return {
+    timestamp: metadata.timestamp as string,
+    text: body.trim(),
+    goal: (metadata.goal as string) || null,
+    rawEntry: entry,
+  };
+}
+
+/**
+ * Parse a reflection entry from inline format
+ *
+ * Inline format:
+ * ## Reflection at HH:MM
+ *
+ * [reflection content]
+ *
+ * Goal: goal-codename (optional)
+ */
+export function parseReflectionEntry(entry: string): ReflectionEntry | null {
+  const headerMatch = entry.match(/^##\s+Reflection at\s+(\d{2}:\d{2})/);
+  if (!headerMatch) return null;
+
+  const timestamp = headerMatch[1];
+  let content = entry.substring(headerMatch[0].length).trim();
+
+  // Extract goal if present
+  let goal: string | null = null;
+  const goalMatch = content.match(/\n\nGoal:\s+([a-z0-9-]+)\s*$/);
+  if (goalMatch) {
+    goal = goalMatch[1];
+    content = content.substring(0, goalMatch.index).trim();
+  }
+
+  return {
+    timestamp,
+    text: content,
+    goal,
+    rawEntry: entry,
+  };
+}
+
+/**
+ * Parse a reflection entry with automatic format detection
+ */
+export function parseReflectionEntryAuto(entry: string): ReflectionEntry | null {
+  const format = detectFormat(entry);
+
+  if (format === 'yaml') {
+    return parseReflectionEntryYaml(entry);
+  } else {
+    return parseReflectionEntry(entry);
+  }
+}
+
+/**
+ * Parse all reflection entries from a markdown file content
+ */
+export function parseReflectionEntries(content: string): ReflectionEntry[] {
+  if (!content) return [];
+
+  const entries = splitEntries(content);
+  return entries.map(parseReflectionEntryAuto).filter((e): e is ReflectionEntry => e !== null);
+}

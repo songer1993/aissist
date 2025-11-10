@@ -253,8 +253,16 @@ async function importFromGitHub(timeframeInput: string): Promise<void> {
 
       for (const [date, contents] of entriesByDate) {
         const filePath = join(storagePath, 'history', `${date}.md`);
+        const time = getCurrentTime();
         for (const content of contents) {
-          await appendToMarkdown(filePath, `## GitHub Import\n\n${content}`);
+          const historyEntry: HistoryItemEntry = {
+            timestamp: time,
+            text: content,
+            goal: null,
+            rawEntry: '', // Will be set by serializer
+          };
+          const entry = serializeHistoryItemEntryYaml(historyEntry);
+          await appendToMarkdown(filePath, entry);
         }
       }
 

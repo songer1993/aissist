@@ -3,13 +3,13 @@ import { join } from 'path';
 import { input, select, checkbox } from '@inquirer/prompts';
 import ora from 'ora';
 import chalk from 'chalk';
-import { getStoragePath, appendToMarkdown, getGoalByCodename } from '../utils/storage.js';
+import { getStoragePath, appendToMarkdown, getGoalByCodename, serializeTodoEntryYaml, type TodoEntry, serializeGoalEntryYaml, type GoalEntry, getExistingCodenames, serializeReflectionEntryYaml, type ReflectionEntry, serializeContextItemEntryYaml, type ContextItemEntry } from '../utils/storage.js';
 import { getCurrentDate, getCurrentTime } from '../utils/date.js';
 import { parseTimeframe, createTimeframeToDeadline, createTimelessTimeframe } from '../utils/timeframe-parser.js';
 import { loadProposalData, hasData, getDataSummary } from '../utils/data-aggregator.js';
 import { buildProposalPrompt } from '../prompts/proposal-prompt.js';
-import { checkClaudeCodeSession, executeClaudeCodeWithTools } from '../llm/claude.js';
-import { success, error, info, warn } from '../utils/cli.js';
+import { checkClaudeCodeSession, executeClaudeCodeWithTools, generateGoalCodename } from '../llm/claude.js';
+import { success, error, info, warn, withSpinner } from '../utils/cli.js';
 import { linkToGoal } from '../utils/goal-matcher.js';
 import { renderMarkdown } from '../utils/markdown.js';
 
@@ -49,7 +49,15 @@ proposeCommand
           const date = getCurrentDate();
           const time = getCurrentTime();
           const filePath = join(storagePath, 'reflections', `${date}.md`);
-          const entry = `## Quick Reflection at ${time}\n\n${reflection}`;
+
+          const reflectionEntry: ReflectionEntry = {
+            timestamp: time,
+            text: reflection,
+            goal: null,
+            rawEntry: '', // Will be set by serializer
+          };
+
+          const entry = serializeReflectionEntryYaml(reflectionEntry);
           await appendToMarkdown(filePath, entry);
           success('Reflection saved!\n');
         }
@@ -264,11 +272,18 @@ async function saveProposalsAsTodos(response: string, storagePath: string, linke
     const date = getCurrentDate();
     const time = getCurrentTime();
     const filePath = join(storagePath, 'todos', `${date}.md`);
-    const goalSuffix = linkedGoalCodename ? ` (Goal: ${linkedGoalCodename})` : '';
 
     for (const index of selectedIndices) {
       const proposal = proposals[index];
-      const entry = `## ${time}\n\n- [ ] ${proposal}${goalSuffix}`;
+      const todoEntry: TodoEntry = {
+        timestamp: time,
+        text: proposal,
+        completed: false,
+        goal: linkedGoalCodename || null,
+        priority: 0,
+        rawEntry: '', // Will be set by serializer
+      };
+      const entry = serializeTodoEntryYaml(todoEntry);
       await appendToMarkdown(filePath, entry);
     }
 
@@ -318,19 +333,42 @@ async function saveProposalsAsGoals(response: string, storagePath: string, linke
     const time = getCurrentTime();
     const filePath = join(storagePath, 'goals', `${date}.md`);
 
-    // Build goals text from selected items
-    const selectedProposals = selectedIndices.map(i => proposals[i]);
-    const goalsText = selectedProposals.map((p, i) => `${i + 1}. ${p}`).join('\n');
-    let entry = `## Proposed Goals (${time})\n\n${goalsText}`;
+    // Get existing codenames to ensure uniqueness
+    const existingCodenames = await getExistingCodenames(filePath);
 
-    // Add goal metadata if a goal was linked
-    if (linkedGoalCodename) {
-      entry += `\n\nGoal: ${linkedGoalCodename}`;
+    // Create individual goal entries with codenames
+    let savedCount = 0;
+    for (const index of selectedIndices) {
+      const proposalText = proposals[index];
+
+      try {
+        // Generate unique codename for this goal
+        const codename = await withSpinner(
+          generateGoalCodename(proposalText, existingCodenames),
+          'Generating codename...'
+        );
+        existingCodenames.push(codename);
+
+        // Create goal entry
+        const goalEntry: GoalEntry = {
+          timestamp: time,
+          codename,
+          text: proposalText,
+          description: linkedGoalCodename ? `Related to: ${linkedGoalCodename}` : null,
+          deadline: null,
+          rawEntry: '', // Will be set by serializer
+        };
+
+        const entry = serializeGoalEntryYaml(goalEntry);
+        await appendToMarkdown(filePath, entry);
+        savedCount++;
+      } catch (err) {
+        error(`Failed to generate codename for goal: ${(err as Error).message}`);
+        // Continue with remaining goals
+      }
     }
 
-    await appendToMarkdown(filePath, entry);
-
-    spinner.succeed(`Saved ${selectedIndices.length} proposal(s) as goals!`);
+    spinner.succeed(`Saved ${savedCount} proposal(s) as goals!`);
   } catch (err) {
     if ((err as Error).name === 'ExitPromptError') {
       info('Selection cancelled');
@@ -356,18 +394,26 @@ async function saveProposalAsMarkdown(
     const time = getCurrentTime();
     const filePath = join(storagePath, 'proposals', `${date}.md`);
 
-    // Build metadata header
-    let metadata = `**Timeframe:** ${timeframe}`;
+    // Build proposal text with metadata and response
+    let proposalText = `**Timeframe:** ${timeframe}`;
     if (tag) {
-      metadata += `\n**Tag:** #${tag}`;
+      proposalText += `\n**Tag:** #${tag}`;
     }
     if (linkedGoalCodename) {
-      metadata += `\n**Goal:** ${linkedGoalCodename}`;
+      proposalText += `\n**Goal:** ${linkedGoalCodename}`;
     }
+    proposalText += `\n\n${response}`;
 
-    // Format entry with horizontal rule separator if appending
-    const entry = `## Proposal at ${time}\n\n${metadata}\n\n${response}\n\n---`;
+    // Create context entry (proposals are stored similar to context)
+    const contextEntry: ContextItemEntry = {
+      timestamp: time,
+      text: proposalText,
+      source: 'proposal',
+      goal: linkedGoalCodename,
+      rawEntry: '', // Will be set by serializer
+    };
 
+    const entry = serializeContextItemEntryYaml(contextEntry);
     await appendToMarkdown(filePath, entry);
 
     spinner.succeed(`Proposal saved to proposals/${date}.md`);
