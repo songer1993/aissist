@@ -6,6 +6,10 @@ import {
   appendToMarkdown,
   readMarkdown,
   getActiveGoals,
+  serializeHistoryItemEntryYaml,
+  parseHistoryItemEntryYaml,
+  parseHistoryItemEntryAuto,
+  type HistoryItemEntry,
 } from './storage';
 
 describe('history goal linking', () => {
@@ -181,5 +185,122 @@ describe('history goal linking', () => {
       expect(content).toBe(entry);
       expect(content).not.toContain('Goal:');
     });
+  });
+});
+
+describe('History YAML serialization', () => {
+  it('should serialize history with schema_version', () => {
+    const history: HistoryItemEntry = {
+      timestamp: '14:30',
+      text: 'Completed code review for PR #123',
+      goal: null,
+      rawEntry: '',
+    };
+
+    const serialized = serializeHistoryItemEntryYaml(history);
+
+    expect(serialized).toContain('---');
+    expect(serialized).toContain('schema_version: "1.0"');
+    expect(serialized).toContain('timestamp: "14:30"');
+    expect(serialized).not.toContain('goal');
+    expect(serialized).toContain('Completed code review for PR #123');
+  });
+
+  it('should serialize history with goal link', () => {
+    const history: HistoryItemEntry = {
+      timestamp: '10:30',
+      text: 'Fixed authentication bug',
+      goal: 'fix-auth-bug',
+      rawEntry: '',
+    };
+
+    const serialized = serializeHistoryItemEntryYaml(history);
+
+    expect(serialized).toContain('schema_version: "1.0"');
+    expect(serialized).toContain('timestamp: "10:30"');
+    expect(serialized).toContain('goal: fix-auth-bug');
+    expect(serialized).toContain('Fixed authentication bug');
+  });
+
+  it('should parse YAML history entry', () => {
+    const yamlEntry = `---
+schema_version: "1.0"
+timestamp: "14:30"
+goal: review-pr
+---
+
+Completed the code review`;
+
+    const parsed = parseHistoryItemEntryYaml(yamlEntry);
+
+    expect(parsed).not.toBeNull();
+    expect(parsed!.timestamp).toBe('14:30');
+    expect(parsed!.text).toBe('Completed the code review');
+    expect(parsed!.goal).toBe('review-pr');
+  });
+
+  it('should parse YAML history without goal', () => {
+    const yamlEntry = `---
+schema_version: "1.0"
+timestamp: "10:30"
+---
+
+Attended team meeting`;
+
+    const parsed = parseHistoryItemEntryYaml(yamlEntry);
+
+    expect(parsed).not.toBeNull();
+    expect(parsed!.timestamp).toBe('10:30');
+    expect(parsed!.text).toBe('Attended team meeting');
+    expect(parsed!.goal).toBeNull();
+  });
+
+  it('should auto-detect YAML format', () => {
+    const yamlEntry = `---
+schema_version: "1.0"
+timestamp: "14:30"
+goal: test-goal
+---
+
+YAML formatted history entry`;
+
+    const parsed = parseHistoryItemEntryAuto(yamlEntry);
+
+    expect(parsed).not.toBeNull();
+    expect(parsed!.timestamp).toBe('14:30');
+    expect(parsed!.text).toBe('YAML formatted history entry');
+    expect(parsed!.goal).toBe('test-goal');
+  });
+
+  it('should auto-detect inline format for backward compatibility', () => {
+    const inlineEntry = `## 10:30
+
+Inline formatted history entry
+
+Goal: test-goal`;
+
+    const parsed = parseHistoryItemEntryAuto(inlineEntry);
+
+    expect(parsed).not.toBeNull();
+    expect(parsed!.timestamp).toBe('10:30');
+    expect(parsed!.text).toBe('Inline formatted history entry');
+    expect(parsed!.goal).toBe('test-goal');
+  });
+
+  it('should round-trip serialize and parse correctly', () => {
+    const original: HistoryItemEntry = {
+      timestamp: '15:45',
+      text: 'Deployed new feature to production\nVerified all systems operational',
+      goal: 'deploy-feature',
+      rawEntry: '',
+    };
+
+    const serialized = serializeHistoryItemEntryYaml(original);
+    const parsed = parseHistoryItemEntryYaml(serialized);
+
+    expect(parsed).not.toBeNull();
+    expect(parsed!.timestamp).toBe(original.timestamp);
+    expect(parsed!.text).toBe(original.text);
+    expect(parsed!.goal).toBe(original.goal);
   });
 });

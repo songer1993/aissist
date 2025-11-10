@@ -1006,7 +1006,7 @@ function parseTodoEntry(entry: string): TodoEntry | null {
  *
  * - [ ] Todo text
  */
-function parseTodoEntryYaml(entry: string): TodoEntry | null {
+export function parseTodoEntryYaml(entry: string): TodoEntry | null {
   const parsed = parseYamlFrontMatter(entry);
   if (!parsed) return null;
 
