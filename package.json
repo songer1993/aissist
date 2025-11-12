@@ -17,6 +17,10 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "test": "vitest",
+    "test:unit": "vitest run --exclude src/__tests__/e2e/**",
+    "test:e2e": "vitest run src/__tests__/e2e",
+    "test:e2e:ci": "CI=true npm run build && npm run test:e2e",
+    "test:all": "npm test && npm run test:e2e",
     "test:ui": "vitest --ui",
     "lint": "eslint src --ext .ts",
     "format": "prettier --write \"src/**/*.ts\"",
@@ -67,6 +71,7 @@
     "@typescript-eslint/eslint-plugin": "^8.19.1",
     "@typescript-eslint/parser": "^8.19.1",
     "eslint": "^9.18.0",
+    "execa": "^9.6.0",
     "prettier": "^3.4.2",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"

@@ -181,6 +181,11 @@ proposeCommand
         console.log('\n' + output);
         console.log(chalk.dim('\n\nPowered by Claude Code'));
 
+        // Skip interactive prompt if --raw flag is used (for non-interactive/testing scenarios)
+        if (options.raw) {
+          return;
+        }
+
         // Offer post-proposal actions
         console.log();
         const action = await select({

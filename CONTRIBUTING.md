@@ -117,8 +117,17 @@ We use Vitest for testing. Tests are located in `src/**/*.test.ts` files.
 ### Running Tests
 
 ```bash
-# Run all tests
-npm test
+# Run all tests (unit + E2E)
+npm run test:all
+
+# Run only unit tests
+npm run test:unit
+
+# Run only E2E tests
+npm run test:e2e
+
+# Run E2E tests in CI mode
+npm run test:e2e:ci
 
 # Run tests in watch mode
 npm test -- --watch
@@ -130,8 +139,11 @@ npm test -- --coverage
 npm run test:ui
 ```
 
-### Writing Tests
+### Unit Testing
 
+Unit tests are located next to the code they test with `.test.ts` extension.
+
+**Writing Unit Tests**:
 - Place test files next to the code they test with `.test.ts` extension
 - Use descriptive test names that explain what is being tested
 - Follow the AAA pattern: Arrange, Act, Assert
@@ -154,6 +166,211 @@ describe('myFunction', () => {
     expect(result).toBe('expected');
   });
 });
+```
+
+### E2E Testing
+
+E2E tests verify the complete CLI workflow by running actual commands in isolated test environments. Tests are located in `src/__tests__/e2e/`.
+
+**Running E2E Tests**:
+
+```bash
+# Run all E2E tests
+npm run test:e2e
+
+# Run specific E2E test suite
+npx vitest run src/__tests__/e2e/goal.e2e.test.ts
+
+# Run E2E tests with verbose output
+npx vitest run src/__tests__/e2e --reporter=verbose
+
+# Run in CI mode (with appropriate timeouts)
+CI=true npm run test:e2e
+```
+
+**E2E Test Infrastructure**:
+
+- **Test Harness** (`src/__tests__/helpers/cli-test-harness.ts`): Provides utilities for running CLI commands in isolated temp directories
+- **Mock Claude CLI** (`src/__tests__/mocks/mock-claude-cli.ts`): Simulates Claude Code responses for testing AI features without external dependencies
+- **Isolated Storage**: Each test gets its own temporary `.aissist` directory that's automatically cleaned up
+- **Non-Interactive Testing**: Uses `--plain` and `--raw` flags to avoid interactive prompts
+
+**Writing E2E Tests**:
+
+Create test files in `src/__tests__/e2e/` following this pattern:
+
+```typescript
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { CliTestHarness } from '../helpers/cli-test-harness.js';
+
+describe('My Command E2E', () => {
+  let harness: CliTestHarness;
+
+  beforeEach(async () => {
+    harness = new CliTestHarness({ mockClaudeCli: true });
+    await harness.setup();
+  });
+
+  afterEach(async () => {
+    await harness.teardown();
+  });
+
+  it('should execute command successfully', async () => {
+    // Run a CLI command
+    const result = await harness.run(['goal', 'add', 'Test goal', '--deadline', '2025-12-31']);
+
+    // Assert success
+    harness.expectSuccess(result);
+    expect(result.stdout).toContain('Goal added');
+
+    // Verify file system changes
+    const goalFiles = harness.listFiles('goals');
+    expect(goalFiles.length).toBeGreaterThan(0);
+
+    // Read and verify file contents
+    const content = harness.readFile(`goals/${goalFiles[0]}`);
+    expect(content).toContain('Test goal');
+  });
+});
+```
+
+**Test Harness API**:
+
+```typescript
+// Setup and teardown
+await harness.setup();          // Create temp directory and mock Claude CLI
+await harness.teardown();       // Clean up temp directory
+
+// Run commands
+const result = await harness.run(['command', 'arg1', 'arg2']);
+
+// Assertions
+harness.expectSuccess(result);  // Assert exit code 0
+expect(result.exitCode).toBe(0);
+expect(result.stdout).toContain('expected output');
+expect(result.stderr).toContain('expected error');
+
+// File system operations
+const files = harness.listFiles('goals');           // List files in subdirectory
+const content = harness.readFile('goals/file.md'); // Read file contents
+const exists = harness.fileExists('goals/file.md'); // Check file existence
+harness.assertFileExists('goals/file.md');          // Assert file exists
+harness.assertFileContains('goals/file.md', 'text'); // Assert file contains text
+
+// Get paths
+const storagePath = harness.getStoragePath();  // Get .aissist directory path
+const tempDir = harness.getTempDir();          // Get temp directory path
+```
+
+**Non-Interactive Testing Guidelines**:
+
+To avoid hanging tests, always use non-interactive flags:
+
+```typescript
+// Goal commands
+await harness.run(['goal', 'add', 'Goal text', '--deadline', '2025-12-31']);
+await harness.run(['goal', 'list', '--plain']);
+
+// Todo commands
+await harness.run(['todo', 'add', 'Todo text']);
+await harness.run(['todo', 'list', '--plain']);
+
+// Propose commands
+await harness.run(['propose', '--raw']);
+await harness.run(['propose', 'this week', '--raw']);
+
+// Recall commands (already non-interactive)
+await harness.run(['recall', 'search query']);
+```
+
+**Testing AI Features**:
+
+The mock Claude CLI automatically generates appropriate responses:
+
+```typescript
+// Enable mock Claude CLI in test setup
+harness = new CliTestHarness({ mockClaudeCli: true });
+
+// Test recall (semantic search)
+const result = await harness.run(['recall', 'productivity tips']);
+expect(result.stdout).toContain('Based on the memory files');
+
+// Test propose (action proposals)
+const result = await harness.run(['propose', '--raw']);
+expect(result.stdout).toContain('actionable next steps');
+```
+
+**CI/CD Integration**:
+
+E2E tests run automatically in GitHub Actions on every PR and push to main:
+
+```yaml
+# .github/workflows/ci.yml
+- name: Run E2E tests
+  run: npm run test:e2e
+  env:
+    CI: true
+    MOCK_CLAUDE_CLI: true
+```
+
+The `CI=true` environment variable:
+- Increases timeouts to 30 seconds for slower CI environments
+- Enables verbose error output for debugging
+- Automatically detected by the test harness
+
+**Debugging E2E Tests**:
+
+```bash
+# Run with verbose output
+npx vitest run src/__tests__/e2e --reporter=verbose
+
+# Run single test file
+npx vitest run src/__tests__/e2e/goal.e2e.test.ts
+
+# Run specific test
+npx vitest run src/__tests__/e2e/goal.e2e.test.ts -t "should add a new goal"
+
+# Keep test directory for inspection (disable teardown)
+# Temporarily comment out teardown in your test
+```
+
+**Common E2E Test Patterns**:
+
+1. **Test command output**:
+```typescript
+const result = await harness.run(['command', 'args']);
+harness.expectSuccess(result);
+expect(result.stdout).toContain('expected text');
+```
+
+2. **Test file creation**:
+```typescript
+await harness.run(['goal', 'add', 'New goal', '--deadline', '2025-12-31']);
+const files = harness.listFiles('goals');
+expect(files.length).toBeGreaterThan(0);
+```
+
+3. **Test file contents**:
+```typescript
+const content = harness.readFile('goals/file.md');
+expect(content).toContain('expected content');
+```
+
+4. **Test goal linking**:
+```typescript
+const goalResult = await harness.run(['goal', 'add', 'Test', '--deadline', '2025-12-31']);
+const codename = goalResult.stdout.match(/codename: ([a-z0-9-]+)/)[1];
+
+await harness.run(['history', 'log', 'Progress made', '--goal', codename]);
+const historyContent = harness.readFile('history/file.md');
+expect(historyContent).toContain(codename);
+```
+
+5. **Test persistence across commands**:
+```typescript
+await harness.run(['todo', 'add', 'Task 1']);
+const result = await harness.run(['todo', 'list', '--plain']);
+expect(result.stdout).toContain('Task 1');
 ```
 
 ## Submitting Changes
