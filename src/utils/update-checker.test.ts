@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { isNewerVersion, fetchLatestVersion, checkForUpdates } from './update-checker.js';
-import { writeFile, mkdir, rm } from 'fs/promises';
+import { writeFile, mkdir, rm, readFile } from 'fs/promises';
 import { join } from 'path';
-import { tmpdir } from 'os';
+import { homedir } from 'os';
 
 describe('update-checker', () => {
   describe('isNewerVersion', () => {
@@ -78,13 +78,20 @@ describe('update-checker', () => {
   });
 
   describe('checkForUpdates', () => {
-    let testDir: string;
+    const globalCacheDir = join(homedir(), '.aissist', 'cache');
+    const globalCachePath = join(globalCacheDir, 'update-check.json');
+    let backupCache: string | null = null;
 
     beforeEach(async () => {
-      // Create temporary test directory
-      testDir = join(tmpdir(), `aissist-test-${Date.now()}`);
-      await mkdir(testDir, { recursive: true });
-      await mkdir(join(testDir, 'cache'), { recursive: true });
+      // Backup existing cache if present
+      try {
+        backupCache = await readFile(globalCachePath, 'utf-8');
+      } catch {
+        backupCache = null;
+      }
+
+      // Ensure cache directory exists
+      await mkdir(globalCacheDir, { recursive: true });
 
       // Mock fetch
       global.fetch = vi.fn();
@@ -92,8 +99,14 @@ describe('update-checker', () => {
 
     afterEach(async () => {
       vi.restoreAllMocks();
+
+      // Restore backup or remove test cache
       try {
-        await rm(testDir, { recursive: true, force: true });
+        if (backupCache) {
+          await writeFile(globalCachePath, backupCache, 'utf-8');
+        } else {
+          await rm(globalCachePath, { force: true });
+        }
       } catch {
         // Ignore cleanup errors
       }
@@ -105,7 +118,7 @@ describe('update-checker', () => {
         json: async () => ({ version: '2.0.0' }),
       });
 
-      const result = await checkForUpdates('1.0.0', testDir);
+      const result = await checkForUpdates('1.0.0');
 
       expect(result.updateAvailable).toBe(true);
       expect(result.currentVersion).toBe('1.0.0');
@@ -118,7 +131,7 @@ describe('update-checker', () => {
         json: async () => ({ version: '1.0.0' }),
       });
 
-      const result = await checkForUpdates('1.0.0', testDir);
+      const result = await checkForUpdates('1.0.0');
 
       expect(result.updateAvailable).toBe(false);
       expect(result.currentVersion).toBe('1.0.0');
@@ -126,14 +139,13 @@ describe('update-checker', () => {
     });
 
     it('should use cache when valid', async () => {
-      // Write cache file
-      const cachePath = join(testDir, 'cache', 'update-check.json');
+      // Write cache file to global location
       const cache = {
         lastChecked: Date.now(),
         latestVersion: '2.0.0',
         updateAvailable: true,
       };
-      await writeFile(cachePath, JSON.stringify(cache));
+      await writeFile(globalCachePath, JSON.stringify(cache));
 
       // Mock fetch should NOT be called
       (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
@@ -141,7 +153,7 @@ describe('update-checker', () => {
         json: async () => ({ version: '3.0.0' }),
       });
 
-      const result = await checkForUpdates('1.0.0', testDir);
+      const result = await checkForUpdates('1.0.0');
 
       expect(result.updateAvailable).toBe(true);
       expect(result.latestVersion).toBe('2.0.0'); // From cache, not fetch
@@ -149,45 +161,59 @@ describe('update-checker', () => {
     });
 
     it('should bypass cache when forceCheck is true', async () => {
-      // Write cache file
-      const cachePath = join(testDir, 'cache', 'update-check.json');
+      // Write cache file to global location
       const cache = {
         lastChecked: Date.now(),
         latestVersion: '2.0.0',
         updateAvailable: true,
       };
-      await writeFile(cachePath, JSON.stringify(cache));
+      await writeFile(globalCachePath, JSON.stringify(cache));
 
       (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
         ok: true,
         json: async () => ({ version: '3.0.0' }),
       });
 
-      const result = await checkForUpdates('1.0.0', testDir, true);
+      const result = await checkForUpdates('1.0.0', true);
 
       expect(result.latestVersion).toBe('3.0.0'); // From fresh fetch
       expect(global.fetch).toHaveBeenCalled();
     });
 
     it('should ignore expired cache', async () => {
-      // Write expired cache file (25 hours old)
-      const cachePath = join(testDir, 'cache', 'update-check.json');
+      // Write expired cache file (25 hours old) to global location
       const cache = {
         lastChecked: Date.now() - (25 * 60 * 60 * 1000),
         latestVersion: '2.0.0',
         updateAvailable: true,
       };
-      await writeFile(cachePath, JSON.stringify(cache));
+      await writeFile(globalCachePath, JSON.stringify(cache));
 
       (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
         ok: true,
         json: async () => ({ version: '3.0.0' }),
       });
 
-      const result = await checkForUpdates('1.0.0', testDir);
+      const result = await checkForUpdates('1.0.0');
 
       expect(result.latestVersion).toBe('3.0.0'); // From fresh fetch
       expect(global.fetch).toHaveBeenCalled();
+    });
+
+    it('should use global cache directory', async () => {
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+        ok: true,
+        json: async () => ({ version: '1.5.0' }),
+      });
+
+      await checkForUpdates('1.0.0');
+
+      // Verify cache was written to global location
+      const cacheContent = await readFile(globalCachePath, 'utf-8');
+      const cache = JSON.parse(cacheContent);
+
+      expect(cache.latestVersion).toBe('1.5.0');
+      expect(cache.updateAvailable).toBe(true);
     });
   });
 });

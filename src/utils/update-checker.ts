@@ -3,8 +3,9 @@
  * Checks npm registry for latest version and provides update notifications
  */
 
-import { readFile, writeFile, access } from 'fs/promises';
+import { readFile, writeFile, access, mkdir } from 'fs/promises';
 import { join } from 'path';
+import { homedir } from 'os';
 
 export interface UpdateCheckResult {
   updateAvailable: boolean;
@@ -117,17 +118,24 @@ function isCacheValid(cache: UpdateCheckCache | null): boolean {
 
 /**
  * Check for updates with caching support
+ * Cache is stored in the global user directory (~/.aissist/cache/)
  * @param currentVersion - Current installed version
- * @param storagePath - Path to .aissist directory for cache storage
  * @param forceCheck - Force check even if cache is valid
  * @returns Update check result
  */
 export async function checkForUpdates(
   currentVersion: string,
-  storagePath: string,
   forceCheck: boolean = false
 ): Promise<UpdateCheckResult> {
-  const cachePath = join(storagePath, 'cache', 'update-check.json');
+  const cacheDir = join(homedir(), '.aissist', 'cache');
+  const cachePath = join(cacheDir, 'update-check.json');
+
+  // Ensure cache directory exists
+  try {
+    await mkdir(cacheDir, { recursive: true });
+  } catch {
+    // Silently fail if directory creation fails
+  }
 
   // Try to read cache first (unless force check)
   if (!forceCheck) {

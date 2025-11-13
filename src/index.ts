@@ -8,7 +8,7 @@ import chalk from 'chalk';
 import { handleError } from './utils/cli.js';
 import { printBrand } from './utils/brand.js';
 import { checkForUpdates, formatUpdateNotification } from './utils/update-checker.js';
-import { getStoragePath, loadConfig, ensureDirectory } from './utils/storage.js';
+import { getStoragePath, loadConfig } from './utils/storage.js';
 
 // Import commands
 import { initCommand } from './commands/init.js';
@@ -42,12 +42,8 @@ printBrand();
 // Start update check in background (non-blocking)
 async function performUpdateCheck(): Promise<void> {
   try {
-    const storagePath = await getStoragePath();
-
-    // Ensure cache directory exists
-    await ensureDirectory(join(storagePath, 'cache'));
-
     // Check if update checks are enabled in config
+    const storagePath = await getStoragePath();
     const config = await loadConfig(storagePath);
     const updateCheckEnabled = config.updateCheck?.enabled ?? true;
 
@@ -55,7 +51,7 @@ async function performUpdateCheck(): Promise<void> {
       return;
     }
 
-    const result = await checkForUpdates(version, storagePath);
+    const result = await checkForUpdates(version);
 
     if (result.updateAvailable) {
       const notification = formatUpdateNotification(result);
