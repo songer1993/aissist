@@ -31,6 +31,26 @@ export const ConfigSchema = z.object({
     })
     .default({ enabled: true }),
   readPaths: z.array(z.string()).optional().default([]),
+  backup: z
+    .object({
+      defaultPath: z.string().optional(),
+      autoBackup: z
+        .object({
+          enabled: z.boolean().default(false),
+          intervalHours: z.number().positive().default(24),
+        })
+        .default({ enabled: false, intervalHours: 24 }),
+      retention: z
+        .object({
+          maxAgeDays: z.number().positive().optional(),
+          maxCount: z.number().positive().optional(),
+        })
+        .default({}),
+    })
+    .default({
+      autoBackup: { enabled: false, intervalHours: 24 },
+      retention: {},
+    }),
 });
 
 export type Config = z.infer<typeof ConfigSchema>;
@@ -165,6 +185,13 @@ export async function initializeStorage(basePath: string): Promise<void> {
         enabled: true,
       },
       readPaths: [],
+      backup: {
+        autoBackup: {
+          enabled: false,
+          intervalHours: 24,
+        },
+        retention: {},
+      },
     };
     await saveConfig(basePath, config);
   }
@@ -1600,4 +1627,104 @@ export function parseReflectionEntries(content: string): ReflectionEntry[] {
 
   const entries = splitEntries(content);
   return entries.map(parseReflectionEntryAuto).filter((e): e is ReflectionEntry => e !== null);
+}
+
+// ============================================================================
+// BACKUP PATH RESOLUTION
+// ============================================================================
+
+/**
+ * Get backup directory path from config or default
+ * Priority: config.backup.defaultPath > ~/aissist-backups/
+ */
+export async function getBackupDirectory(storagePath?: string): Promise<string> {
+  try {
+    if (storagePath) {
+      const config = await loadConfig(storagePath);
+      if (config.backup?.defaultPath) {
+        return config.backup.defaultPath;
+      }
+    }
+  } catch {
+    // Config doesn't exist or can't be loaded, use default
+  }
+
+  // Default backup directory
+  return join(homedir(), 'aissist-backups');
+}
+
+/**
+ * Get backup config with defaults
+ */
+export async function getBackupConfig(storagePath: string) {
+  try {
+    const config = await loadConfig(storagePath);
+    return {
+      defaultPath: config.backup?.defaultPath,
+      autoBackup: {
+        enabled: config.backup?.autoBackup?.enabled ?? false,
+        intervalHours: config.backup?.autoBackup?.intervalHours ?? 24,
+      },
+      retention: {
+        maxAgeDays: config.backup?.retention?.maxAgeDays,
+        maxCount: config.backup?.retention?.maxCount,
+      },
+    };
+  } catch {
+    // Return defaults if config doesn't exist
+    return {
+      defaultPath: undefined,
+      autoBackup: {
+        enabled: false,
+        intervalHours: 24,
+      },
+      retention: {
+        maxAgeDays: undefined,
+        maxCount: undefined,
+      },
+    };
+  }
+}
+
+/**
+ * Get last backup timestamp from cache
+ */
+export async function getLastBackupTime(storagePath: string): Promise<Date | null> {
+  try {
+    const cachePath = join(storagePath, 'cache', 'last-backup');
+    const timestamp = await readFile(cachePath, 'utf-8');
+    return new Date(timestamp);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Update last backup timestamp in cache
+ */
+export async function setLastBackupTime(storagePath: string): Promise<void> {
+  const cachePath = join(storagePath, 'cache', 'last-backup');
+  await ensureDirectory(join(storagePath, 'cache'));
+  await writeFile(cachePath, new Date().toISOString());
+}
+
+/**
+ * Check if auto-backup is due based on interval configuration
+ */
+export async function shouldAutoBackup(storagePath: string): Promise<boolean> {
+  const config = await getBackupConfig(storagePath);
+
+  if (!config.autoBackup.enabled) {
+    return false;
+  }
+
+  const lastBackup = await getLastBackupTime(storagePath);
+  if (!lastBackup) {
+    return true; // No backup yet, should backup
+  }
+
+  const hoursSinceLastBackup =
+    (Date.now() - lastBackup.getTime()) / (1000 * 60 * 60);
+
+  return hoursSinceLastBackup >= config.autoBackup.intervalHours;
 }

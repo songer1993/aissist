@@ -22,6 +22,8 @@ import { proposeCommand } from './commands/propose.js';
 import { todoCommand } from './commands/todo.js';
 import { clearCommand } from './commands/clear.js';
 import { configCommand } from './commands/config.js';
+import { backupCommand } from './commands/backup.js';
+import { restoreCommand } from './commands/restore.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -98,6 +100,8 @@ program.addCommand(proposeCommand);
 program.addCommand(todoCommand);
 program.addCommand(clearCommand);
 program.addCommand(configCommand);
+program.addCommand(backupCommand);
+program.addCommand(restoreCommand);
 
 program
   .command('recall')
