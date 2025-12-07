@@ -358,6 +358,41 @@ Claude: [aissist-cli skill activates]
 
 See [skills/aissist-cli/SKILL.md](./skills/aissist-cli/SKILL.md) for complete documentation.
 
+## Hooks
+
+The plugin includes hooks that enhance Claude Code sessions with useful context.
+
+### DateTime Context Hook
+
+Automatically injects the current date and time into every Claude Code session. This helps Claude understand:
+- Relative time references ("today", "this week", "due tomorrow")
+- Deadline urgency
+- Historical context for entries
+
+The hook triggers on every `UserPromptSubmit` event and outputs:
+```
+Current date and time: 2025-12-07 10:15:30 CET
+```
+
+**Configuration** (`settings.json`):
+```json
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash $CLAUDE_PROJECT_DIR/hooks/add-datetime.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
 ## Directory Structure
 
 ```
@@ -370,6 +405,9 @@ aissist-plugin/
 │   ├── log-github.md        # /aissist:log-github
 │   ├── recall.md            # /aissist:recall
 │   └── report.md            # /aissist:report
+├── hooks/                    # Claude Code hooks
+│   └── add-datetime.sh      # Injects current datetime
+├── settings.json             # Hook configuration
 ├── skills/                   # Agent skills
 │   └── aissist-cli/
 │       ├── SKILL.md         # Main skill documentation
