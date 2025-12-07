@@ -57,6 +57,15 @@ export const ConfigSchema = z.object({
       exclude: z.array(z.string()).default([]),
     })
     .default({ maxDepth: 5, exclude: [] }),
+  hooks: z
+    .object({
+      contextInjection: z
+        .object({
+          enabled: z.boolean().default(false),
+        })
+        .default({ enabled: false }),
+    })
+    .default({ contextInjection: { enabled: false } }),
 });
 
 export type Config = z.infer<typeof ConfigSchema>;
@@ -278,6 +287,11 @@ export async function initializeStorage(basePath: string): Promise<void> {
       sync: {
         maxDepth: 5,
         exclude: [],
+      },
+      hooks: {
+        contextInjection: {
+          enabled: false,
+        },
       },
     };
     await saveConfig(basePath, config);

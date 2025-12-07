@@ -355,4 +355,95 @@ updateCheckCommand.action(async () => {
   }
 });
 
+/**
+ * Enable context injection hook
+ */
+export async function contextInjectionEnableCommand(): Promise<void> {
+  const storagePath = await getStoragePath();
+  const config = await loadConfig(storagePath);
+
+  if (!config.hooks) {
+    config.hooks = { contextInjection: { enabled: true } };
+  } else if (!config.hooks.contextInjection) {
+    config.hooks.contextInjection = { enabled: true };
+  } else {
+    config.hooks.contextInjection.enabled = true;
+  }
+
+  await saveConfig(storagePath, config);
+  success('Context injection hook enabled');
+}
+
+/**
+ * Disable context injection hook
+ */
+export async function contextInjectionDisableCommand(): Promise<void> {
+  const storagePath = await getStoragePath();
+  const config = await loadConfig(storagePath);
+
+  if (!config.hooks) {
+    config.hooks = { contextInjection: { enabled: false } };
+  } else if (!config.hooks.contextInjection) {
+    config.hooks.contextInjection = { enabled: false };
+  } else {
+    config.hooks.contextInjection.enabled = false;
+  }
+
+  await saveConfig(storagePath, config);
+  success('Context injection hook disabled');
+}
+
+/**
+ * Show context injection status
+ */
+export async function contextInjectionStatusCommand(): Promise<void> {
+  const storagePath = await getStoragePath();
+
+  try {
+    const config = await loadConfig(storagePath);
+    const enabled = config.hooks?.contextInjection?.enabled ?? false;
+
+    console.log('\nContext injection hook:');
+    console.log(`  Enabled: ${enabled ? 'yes' : 'no'}`);
+  } catch {
+    warn('No configuration found');
+  }
+}
+
+// Register context-injection subcommands
+const contextInjectionCommand = configCommand
+  .command('context-injection')
+  .description('Manage context injection hook for Claude Code sessions');
+
+contextInjectionCommand
+  .command('enable')
+  .description('Enable context injection (injects goals/history on session start)')
+  .action(async () => {
+    try {
+      await contextInjectionEnableCommand();
+    } catch (error) {
+      handleError(error);
+    }
+  });
+
+contextInjectionCommand
+  .command('disable')
+  .description('Disable context injection hook')
+  .action(async () => {
+    try {
+      await contextInjectionDisableCommand();
+    } catch (error) {
+      handleError(error);
+    }
+  });
+
+// Default action shows status
+contextInjectionCommand.action(async () => {
+  try {
+    await contextInjectionStatusCommand();
+  } catch (error) {
+    handleError(error);
+  }
+});
+
 export { configCommand };

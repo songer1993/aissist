@@ -374,24 +374,34 @@ The hook triggers on every `UserPromptSubmit` event and outputs:
 Current date and time: 2025-12-07 10:15:30 CET
 ```
 
-**Configuration** (`settings.json`):
-```json
-{
-  "hooks": {
-    "UserPromptSubmit": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash $CLAUDE_PROJECT_DIR/hooks/add-datetime.sh"
-          }
-        ]
-      }
-    ]
-  }
-}
+### Context Injection Hook
+
+Injects active goals and recent history at session start, giving Claude immediate awareness of your current priorities. **Disabled by default** to avoid noise.
+
+**Enable/Disable:**
+```bash
+aissist config context-injection enable   # Turn on
+aissist config context-injection disable  # Turn off
+aissist config context-injection          # Check status
 ```
+
+When enabled, the hook triggers on `SessionStart` and outputs:
+```
+Active context:
+
+Goals:
+  • complete-mvp (due: 2025-12-10)
+  • learn-rust (ongoing)
+
+Recent history (last 3 days):
+  • [2025-12-07] Fixed authentication bug
+  • [2025-12-06] Deployed v1.2 to production
+```
+
+**Benefits:**
+- Claude understands your current priorities without asking
+- Provides continuity between sessions
+- Helps with deadline awareness and planning
 
 ## Directory Structure
 
@@ -406,7 +416,8 @@ aissist-plugin/
 │   ├── recall.md            # /aissist:recall
 │   └── report.md            # /aissist:report
 ├── hooks/                    # Claude Code hooks
-│   └── add-datetime.sh      # Injects current datetime
+│   ├── add-datetime.sh      # Injects current datetime
+│   └── inject-context.sh    # Injects goals/history (configurable)
 ├── settings.json             # Hook configuration
 ├── skills/                   # Agent skills
 │   └── aissist-cli/
