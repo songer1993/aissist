@@ -103,11 +103,16 @@ Initialize aissist storage structure.
 
 **Options:**
 - `-g, --global` - Initialize global storage in ~/.aissist/
+- `-d, --description <text>` - Set instance description (Northstar) non-interactively
+
+**Interactive Prompts:**
+When initializing, you'll be asked to provide an optional one-line description of what this aissist instance is for (e.g., "Sprint tracking for Project Apollo"). This is saved as `DESCRIPTION.md` and helps contextualize your goals and history.
 
 **Examples:**
 ```bash
-aissist init              # Create ./.aissist/ in current directory
+aissist init              # Create ./.aissist/ in current directory (prompts for description)
 aissist init --global     # Create ~/.aissist/ for global use
+aissist init --description "Personal productivity tracking"  # Skip prompt, set description directly
 ```
 
 ### `aissist goal`
@@ -553,6 +558,7 @@ aissist config hierarchy disable
 ```
 .aissist/                    # or ~/.aissist/ for global
 ├── config.json              # Configuration
+├── DESCRIPTION.md           # Optional instance description (Northstar)
 ├── goals/                   # Goal tracking
 │   ├── YYYY-MM-DD.md        # Active goals with codenames
 │   └── finished/            # Completed goals archive

@@ -84,6 +84,7 @@ program
   .command('init')
   .description('Initialize aissist storage (use --global for ~/.aissist/)')
   .option('-g, --global', 'Initialize global storage in ~/.aissist/')
+  .option('-d, --description <text>', 'Set instance description (skips interactive prompt)')
   .action(async (options) => {
     try {
       await initCommand(options);

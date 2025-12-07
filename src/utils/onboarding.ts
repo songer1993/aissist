@@ -1,5 +1,29 @@
-import { confirm } from '@inquirer/prompts';
+import { confirm, input } from '@inquirer/prompts';
 import { isTTY } from './tty.js';
+
+/**
+ * Prompt user to provide an optional description for the aissist instance
+ *
+ * @returns The description string, or empty string if skipped
+ * @throws Error if user cancels with Ctrl+C (handled by caller)
+ */
+export async function promptForDescription(): Promise<string> {
+  // Skip prompt if not in TTY environment
+  if (!isTTY()) {
+    return '';
+  }
+
+  try {
+    const description = await input({
+      message: 'What is this aissist instance for? (optional, press Enter to skip)',
+    });
+
+    return description.trim();
+  } catch (err) {
+    // User cancelled with Ctrl+C - let the caller handle it
+    throw err;
+  }
+}
 
 /**
  * Prompt user to create their first goal after initialization

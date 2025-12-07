@@ -2,7 +2,51 @@
 
 ## Purpose
 Provide interactive guidance at key workflow transition points to help users discover features, reduce friction, and build productive habits. This capability enables contextual prompts that guide users from initialization to their first goal, and from goal creation to linked todo management.
+
 ## Requirements
+
+### Requirement: Instance Description Prompt
+After successful storage initialization, the system SHALL prompt the user for an optional one-line description of what the aissist instance is for. This description serves as a "Northstar" that contextualizes all goals and history.
+
+#### Scenario: User provides instance description interactively
+- **GIVEN** the user runs `aissist init`
+- **AND** storage initialization completes successfully
+- **WHEN** the system displays "What is this aissist instance for? (optional, press Enter to skip)"
+- **AND** the user enters "Sprint tracking for Project Apollo"
+- **THEN** the system saves the description to `.aissist/DESCRIPTION.md`
+- **AND** displays "Description saved"
+- **AND** proceeds to the next onboarding step (hierarchy discovery or Claude Code integration)
+
+#### Scenario: User skips description prompt by pressing Enter
+- **GIVEN** the user runs `aissist init`
+- **AND** storage initialization completes successfully
+- **WHEN** the system displays the description prompt
+- **AND** the user presses Enter without entering text
+- **THEN** the system does NOT create `DESCRIPTION.md`
+- **AND** proceeds to the next onboarding step
+
+#### Scenario: User provides description via --description flag
+- **GIVEN** the user runs `aissist init --description "Personal productivity tracking"`
+- **WHEN** storage initialization completes successfully
+- **THEN** the system saves the description to `.aissist/DESCRIPTION.md`
+- **AND** displays "Description saved"
+- **AND** does NOT display the interactive description prompt
+- **AND** proceeds to the next onboarding step
+
+#### Scenario: Skip description prompt in non-TTY environment
+- **GIVEN** the command is executed in a non-TTY environment (e.g., CI pipeline)
+- **WHEN** `aissist init` completes
+- **THEN** the system does NOT display the description prompt
+- **AND** does NOT create `DESCRIPTION.md` unless `--description` flag is provided
+
+#### Scenario: User cancels description prompt with Ctrl+C
+- **GIVEN** the user runs `aissist init`
+- **AND** storage initialization completes successfully
+- **WHEN** the system displays the description prompt
+- **AND** the user presses Ctrl+C
+- **THEN** the system continues gracefully to the next onboarding step
+- **AND** does NOT create `DESCRIPTION.md`
+
 ### Requirement: Post-Initialization Goal Prompt
 After successful storage initialization, the system SHALL prompt the user to create their first goal with an option to proceed or skip.
 

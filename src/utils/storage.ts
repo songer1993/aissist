@@ -224,6 +224,31 @@ export async function saveConfig(basePath: string, config: Config): Promise<void
 }
 
 /**
+ * Save instance description to DESCRIPTION.md
+ * @param basePath - Path to storage directory
+ * @param description - Description text (single line)
+ */
+export async function saveDescription(basePath: string, description: string): Promise<void> {
+  const descriptionPath = join(basePath, 'DESCRIPTION.md');
+  await writeFile(descriptionPath, description.trim());
+}
+
+/**
+ * Load instance description from DESCRIPTION.md
+ * @param basePath - Path to storage directory
+ * @returns Description text or null if not found
+ */
+export async function loadDescription(basePath: string): Promise<string | null> {
+  const descriptionPath = join(basePath, 'DESCRIPTION.md');
+  try {
+    const content = await readFile(descriptionPath, 'utf-8');
+    return content.trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Append content to a markdown file
  */
 export async function appendToMarkdown(

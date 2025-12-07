@@ -2,10 +2,10 @@ import { join, relative } from 'path';
 import { homedir } from 'os';
 import { access } from 'fs/promises';
 import { confirm } from '@inquirer/prompts';
-import { initializeStorage, discoverHierarchy, loadConfig, saveConfig } from '../utils/storage.js';
+import { initializeStorage, discoverHierarchy, loadConfig, saveConfig, saveDescription } from '../utils/storage.js';
 import { success, warn, info, error } from '../utils/cli.js';
 import { checkClaudeCodeInstalled, integrateClaudeCodePlugin } from '../utils/claude-plugin.js';
-import { promptForFirstGoal, promptForFirstTodo } from '../utils/onboarding.js';
+import { promptForFirstGoal, promptForFirstTodo, promptForDescription } from '../utils/onboarding.js';
 import { createGoalInteractive } from '../utils/goal-helpers.js';
 import { createTodoInteractive } from '../utils/todo-helpers.js';
 import { isTTY } from '../utils/tty.js';
@@ -13,6 +13,7 @@ import ora from 'ora';
 
 interface InitOptions {
   global?: boolean;
+  description?: string;
 }
 
 /**
@@ -75,6 +76,27 @@ export async function initCommand(options: InitOptions): Promise<void> {
     info('You can now start tracking your goals, history, context, and reflections!');
     storageNewlyCreated = true;
 
+    // Handle instance description (from flag or interactive prompt)
+    try {
+      let description = options.description;
+
+      if (description) {
+        // Use description from flag
+        await saveDescription(basePath, description);
+        success('Description saved');
+      } else if (isTTY()) {
+        // Prompt for description interactively
+        info('');
+        description = await promptForDescription();
+        if (description) {
+          await saveDescription(basePath, description);
+          success('Description saved');
+        }
+      }
+    } catch (_err) {
+      // User cancelled description prompt with Ctrl+C - continue gracefully
+    }
+
     // Discover parent .aissist directories for hierarchical configuration
     const discoveredPaths = await discoverHierarchy(basePath);
 
@@ -98,37 +120,41 @@ export async function initCommand(options: InitOptions): Promise<void> {
   const claudeStatus = await checkClaudeCodeInstalled();
   if (claudeStatus.installed) {
     info('');
-    const shouldIntegrate = await confirm({
-      message: 'Would you like to integrate with Claude Code?',
-      default: true,
-    });
+    try {
+      const shouldIntegrate = await confirm({
+        message: 'Would you like to integrate with Claude Code?',
+        default: true,
+      });
 
-    if (shouldIntegrate) {
-      const spinner = ora('Installing Claude Code plugin...').start();
+      if (shouldIntegrate) {
+        const spinner = ora('Installing Claude Code plugin...').start();
 
-      try {
-        const result = await integrateClaudeCodePlugin();
+        try {
+          const result = await integrateClaudeCodePlugin();
 
-        if (result.success) {
-          spinner.succeed();
-          if (result.alreadyInstalled) {
-            info(result.message);
+          if (result.success) {
+            spinner.succeed();
+            if (result.alreadyInstalled) {
+              info(result.message);
+            } else {
+              success(result.message);
+              info('');
+              info('Available commands:');
+              info('  /aissist:log    - Import GitHub activity as history');
+              info('  /aissist:recall - Semantic search across your memory');
+              info('  /aissist:goal   - Manage goals interactively');
+            }
           } else {
-            success(result.message);
-            info('');
-            info('Available commands:');
-            info('  /aissist:log    - Import GitHub activity as history');
-            info('  /aissist:recall - Semantic search across your memory');
-            info('  /aissist:goal   - Manage goals interactively');
+            spinner.fail('Failed to install plugin');
+            error(result.message);
           }
-        } else {
-          spinner.fail('Failed to install plugin');
-          error(result.message);
+        } catch (err) {
+          spinner.fail('Installation error');
+          error(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
         }
-      } catch (err) {
-        spinner.fail('Installation error');
-        error(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
       }
+    } catch (_err) {
+      // User cancelled Claude Code integration prompt with Ctrl+C - continue gracefully
     }
   }
 

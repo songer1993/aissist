@@ -9,6 +9,8 @@ import {
   initializeStorage,
   loadConfig,
   saveConfig,
+  saveDescription,
+  loadDescription,
   appendToMarkdown,
   readMarkdown,
   getActiveGoals,
@@ -140,6 +142,44 @@ describe('storage utilities', () => {
 
       const config = await loadConfig(testDir);
       expect(config.createdAt).toBe(initialConfig.createdAt);
+    });
+  });
+
+  describe('saveDescription and loadDescription', () => {
+    it('should save and load description correctly', async () => {
+      const description = 'Project Apollo sprint tracking';
+      await saveDescription(testDir, description);
+
+      const result = await loadDescription(testDir);
+      expect(result).toBe(description);
+    });
+
+    it('should trim whitespace from description', async () => {
+      await saveDescription(testDir, '  My description  ');
+
+      const result = await loadDescription(testDir);
+      expect(result).toBe('My description');
+    });
+
+    it('should return null if DESCRIPTION.md does not exist', async () => {
+      const result = await loadDescription(testDir);
+      expect(result).toBeNull();
+    });
+
+    it('should return null if DESCRIPTION.md is empty', async () => {
+      const descPath = join(testDir, 'DESCRIPTION.md');
+      await writeFile(descPath, '   ');
+
+      const result = await loadDescription(testDir);
+      expect(result).toBeNull();
+    });
+
+    it('should overwrite existing description', async () => {
+      await saveDescription(testDir, 'First description');
+      await saveDescription(testDir, 'Second description');
+
+      const result = await loadDescription(testDir);
+      expect(result).toBe('Second description');
     });
   });
 
