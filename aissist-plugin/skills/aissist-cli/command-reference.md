@@ -11,6 +11,7 @@ Complete documentation of all aissist commands, options, and parameters.
 - [reflect](#reflect)
 - [propose](#propose)
 - [recall](#recall)
+- [config](#config)
 - [clear](#clear)
 - [path](#path)
 
@@ -594,6 +595,136 @@ aissist recall "when did I start the authentication project?" --raw
 - Time-based queries ("last month", "this year")
 - Topic-based queries ("TypeScript", "fitness")
 - Progress queries ("progress on X", "how far have I come")
+
+---
+
+## config
+
+Manage aissist configuration settings.
+
+### config hierarchy
+
+Manage hierarchical configuration for monorepo/nested project access.
+
+**Syntax:**
+```bash
+aissist config hierarchy [enable|disable|status]
+```
+
+**Examples:**
+```bash
+# Enable hierarchical read access to parent directories
+aissist config hierarchy enable
+
+# Check current hierarchy status
+aissist config hierarchy status
+
+# Disable hierarchical read access (sandbox mode)
+aissist config hierarchy disable
+```
+
+**Behavior:**
+- **enable**: Discovers parent `.aissist/` directories and enables read access
+- **disable**: Restricts read/write to local directory only (sandbox mode)
+- **status**: Shows current hierarchy configuration and read paths
+- **Read**: Can access goals/history/todos from parent directories
+- **Write**: All changes saved to local directory only (no pollution of parent configs)
+
+### config hints
+
+Manage contextual hints that appear after commands.
+
+**Syntax:**
+```bash
+aissist config hints [enable|disable|status]
+aissist config hints strategy <type>
+```
+
+**Options:**
+- `enable` - Turn on contextual hints
+- `disable` - Turn off contextual hints
+- `status` - Show current hints configuration
+- `strategy <type>` - Set strategy: `ai` (AI-generated) or `static` (predefined)
+
+**Examples:**
+```bash
+# Enable hints
+aissist config hints enable
+
+# Check hints status
+aissist config hints status
+
+# Set hints strategy to AI-generated
+aissist config hints strategy ai
+
+# Disable hints
+aissist config hints disable
+```
+
+**Behavior:**
+- Hints appear after commands to suggest related actions
+- AI strategy provides context-aware suggestions
+- Static strategy shows predefined helpful tips
+
+### config update-check
+
+Manage automatic update checks on startup.
+
+**Syntax:**
+```bash
+aissist config update-check [enable|disable|status]
+```
+
+**Examples:**
+```bash
+# Enable update checks
+aissist config update-check enable
+
+# Check current status
+aissist config update-check status
+
+# Disable update checks
+aissist config update-check disable
+```
+
+**Behavior:**
+- When enabled, checks npm registry for new versions on startup
+- Shows notification if newer version is available
+- Does not auto-update, just notifies
+
+### config context-injection
+
+Manage the Claude Code session hook that injects active goals and recent history.
+
+**Syntax:**
+```bash
+aissist config context-injection [enable|disable|status]
+```
+
+**Examples:**
+```bash
+# Enable context injection hook
+aissist config context-injection enable
+
+# Check if context injection is enabled
+aissist config context-injection status
+
+# Disable context injection hook
+aissist config context-injection disable
+```
+
+**Behavior:**
+- When enabled, injects active goals and recent history at Claude Code session start
+- Provides Claude with immediate awareness of your current priorities
+- Includes:
+  - All active goals with codenames and deadlines
+  - Recent history entries (last 3 days)
+- Disabled by default to avoid session noise
+- Useful for maintaining continuity between Claude Code sessions
+
+**Requirements:**
+- Aissist plugin installed in Claude Code
+- Only works within Claude Code sessions (not standalone CLI)
 
 ---
 

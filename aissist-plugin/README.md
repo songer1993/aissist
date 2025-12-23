@@ -382,8 +382,10 @@ Injects active goals and recent history at session start, giving Claude immediat
 ```bash
 aissist config context-injection enable   # Turn on
 aissist config context-injection disable  # Turn off
-aissist config context-injection          # Check status
+aissist config context-injection status   # Check status
 ```
+
+For complete `config` command documentation, see [Command Reference - config](./skills/aissist-cli/command-reference.md#config).
 
 When enabled, the hook triggers on `SessionStart` and outputs:
 ```
