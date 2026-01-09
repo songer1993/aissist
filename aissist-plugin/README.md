@@ -360,21 +360,9 @@ See [skills/aissist-cli/SKILL.md](./skills/aissist-cli/SKILL.md) for complete do
 
 ## Hooks
 
-The plugin includes hooks that enhance Claude Code sessions with useful context.
+The plugin includes hooks that enhance Claude Code sessions with useful context and intelligent suggestions.
 
-### DateTime Context Hook
-
-Automatically injects the current date and time into every Claude Code session. This helps Claude understand:
-- Relative time references ("today", "this week", "due tomorrow")
-- Deadline urgency
-- Historical context for entries
-
-The hook triggers on every `UserPromptSubmit` event and outputs:
-```
-Current date and time: 2025-12-07 10:15:30 CET
-```
-
-### Context Injection Hook
+### Context Injection Hook (SessionStart)
 
 Injects active goals and recent history at session start, giving Claude immediate awareness of your current priorities. **Disabled by default** to avoid noise.
 
@@ -405,6 +393,63 @@ Recent history (last 3 days):
 - Provides continuity between sessions
 - Helps with deadline awareness and planning
 
+### Prompt Hints Hook (UserPromptSubmit)
+
+Provides datetime context and intelligent command suggestions based on keywords in your prompts. This enhanced hook replaces the simple datetime hook.
+
+**Features:**
+- Injects current date and time for temporal awareness
+- Detects keywords and suggests relevant aissist commands
+
+**Keyword Detection:**
+
+| User Says | Suggestion |
+|-----------|------------|
+| "how did I", "previously", "last time" | `/aissist:recall` |
+| "my goal", "progress", "deadline" | `/aissist:chat` |
+| numbered items, "todo:", "tasks:" | `/aissist:todo` |
+| "summary", "report", "what have I done" | `/aissist:report` |
+
+**Example Output:**
+```
+Current date and time: 2025-12-07 10:15:30 CET
+Hint: Use /aissist:recall to search past work
+```
+
+### Post-Edit Hook (PostToolUse: Edit/Write)
+
+Reminds you to log work after file modifications. Triggers after Edit or Write tool operations.
+
+**Example Output:**
+```
+File modified: auth.ts - consider /aissist:log if this completes a task
+```
+
+**Benefits:**
+- Contextual logging reminders at the right moment
+- Helps build consistent history of work
+- Non-intrusive - only shows after actual file changes
+
+### Post-Bash Hook (PostToolUse: Bash)
+
+Detects significant shell operations and suggests logging. Triggers after Bash tool operations.
+
+**Detected Operations:**
+- Git commits
+- Test runs (pytest, npm test, cargo test, etc.)
+- Build commands (npm run build, cargo build, make, etc.)
+- Deployment commands
+
+**Example Output:**
+```
+Git commit detected - use /aissist:log to record this work
+```
+
+**Benefits:**
+- Automatically prompts logging after meaningful milestones
+- Catches commits, tests, builds, and deployments
+- Silent for routine commands (no noise)
+
 ## Directory Structure
 
 ```
@@ -418,8 +463,11 @@ aissist-plugin/
 │   ├── recall.md            # /aissist:recall
 │   └── report.md            # /aissist:report
 ├── hooks/                    # Claude Code hooks
-│   ├── add-datetime.sh      # Injects current datetime
-│   └── inject-context.sh    # Injects goals/history (configurable)
+│   ├── add-datetime.sh      # Simple datetime (legacy, kept for compatibility)
+│   ├── inject-context.sh    # Injects goals/history at session start
+│   ├── prompt-hints.sh      # Datetime + keyword suggestions (UserPromptSubmit)
+│   ├── post-edit.sh         # Log reminder after file edits (PostToolUse)
+│   └── post-bash.sh         # Log reminder after git/test/build (PostToolUse)
 ├── settings.json             # Hook configuration
 ├── skills/                   # Agent skills
 │   └── aissist-cli/
