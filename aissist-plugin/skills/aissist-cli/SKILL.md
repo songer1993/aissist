@@ -318,6 +318,39 @@ AISSIST_QUIET=1 aissist todo done "task text"
 AISSIST_QUIET=1 aissist context query --kind contact
 ```
 
+## Quick Command Cheatsheet (Claude Code)
+
+Copy-paste ready. **Always use these exact forms:**
+
+```bash
+# Log what was done (history)
+AISSIST_QUIET=1 aissist history log "Description of what was done" --goal <codename>
+
+# Add a todo
+AISSIST_QUIET=1 aissist todo add "Task description" --goal <codename>
+
+# Mark todo done (by text match)
+AISSIST_QUIET=1 aissist todo done "partial task text"
+
+# List todos
+AISSIST_QUIET=1 aissist todo list --plain
+
+# List goals
+AISSIST_QUIET=1 aissist goal list --plain
+
+# Query context entities
+AISSIST_QUIET=1 aissist context query --kind contact
+AISSIST_QUIET=1 aissist context query --kind email --field "project=phd-thesis-corrections"
+
+# Show specific entity
+AISSIST_QUIET=1 aissist context show people --entity per-ola-kristensson
+
+# Semantic search
+AISSIST_QUIET=1 aissist recall "query" --raw
+```
+
+**There is no `aissist log` command.** Use `aissist history log` for logging activities.
+
 ## Command Construction Guidelines
 
 1. **Always check if storage is initialized** - If user is new to aissist, suggest `aissist init` first
