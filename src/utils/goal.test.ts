@@ -24,6 +24,9 @@ Deadline: 2025-11-15`;
       text: 'Complete project proposal',
       description: null,
       deadline: '2025-11-15',
+      parent_goal: null,
+      kind: null,
+      status: null,
       rawEntry: entry,
     });
   });
@@ -41,6 +44,9 @@ Launch MVP to production`;
       text: 'Launch MVP to production',
       description: null,
       deadline: null,
+      parent_goal: null,
+      kind: null,
+      status: null,
       rawEntry: entry,
     });
   });
@@ -58,6 +64,9 @@ Complete project proposal`;
       text: 'Complete project proposal',
       description: null,
       deadline: null,
+      parent_goal: null,
+      kind: null,
+      status: null,
       rawEntry: entry,
     });
   });
@@ -77,6 +86,9 @@ and details`;
       text: 'This is a complex task\nwith multiple lines\nand details',
       description: null,
       deadline: null,
+      parent_goal: null,
+      kind: null,
+      status: null,
       rawEntry: entry,
     });
   });
@@ -195,6 +207,9 @@ Deadline: 2025-11-15`;
       text: 'Complete the project',
       description: 'This is a detailed description',
       deadline: '2025-11-15',
+      parent_goal: null,
+      kind: null,
+      status: null,
       rawEntry: entry,
     });
   });
@@ -216,6 +231,9 @@ Launch new feature
       text: 'Launch new feature',
       description: 'Phase 1: Testing\nPhase 2: Marketing\nPhase 3: Launch',
       deadline: null,
+      parent_goal: null,
+      kind: null,
+      status: null,
       rawEntry: entry,
     });
   });
@@ -252,6 +270,9 @@ Deadline: 2025-12-01`;
       text: 'Complete deliverables',
       description: 'Include documentation\nRun all tests',
       deadline: '2025-12-01',
+      parent_goal: null,
+      kind: null,
+      status: null,
       rawEntry: entry,
     });
   });
@@ -338,6 +359,9 @@ describe('Goal YAML serialization', () => {
       text: 'Complete the test implementation',
       description: 'Add comprehensive test coverage',
       deadline: '2025-12-31',
+      parent_goal: null,
+      kind: null,
+      status: null,
       rawEntry: '',
     };
 
@@ -359,6 +383,9 @@ describe('Goal YAML serialization', () => {
       text: 'Simple goal text',
       description: null,
       deadline: null,
+      parent_goal: null,
+      kind: null,
+      status: null,
       rawEntry: '',
     };
 
@@ -369,6 +396,8 @@ describe('Goal YAML serialization', () => {
     expect(serialized).toContain('codename: simple-goal');
     expect(serialized).not.toContain('deadline');
     expect(serialized).not.toContain('description');
+    expect(serialized).not.toContain('kind');
+    expect(serialized).not.toContain('status');
     expect(serialized).toContain('Simple goal text');
   });
 
@@ -446,6 +475,9 @@ Inline formatted goal`;
       text: 'Test round-trip serialization',
       description: 'Ensure no data loss',
       deadline: '2025-11-15',
+      parent_goal: null,
+      kind: null,
+      status: null,
       rawEntry: '',
     };
 
@@ -458,5 +490,164 @@ Inline formatted goal`;
     expect(parsed!.text).toBe(original.text);
     expect(parsed!.description).toBe(original.description);
     expect(parsed!.deadline).toBe(original.deadline);
+  });
+});
+
+describe('Goal kind and status fields', () => {
+  it('should serialize goal with kind=area and status=active', () => {
+    const goal: GoalEntry = {
+      timestamp: '10:00',
+      codename: 'health-fitness',
+      text: 'Maintain physical fitness routine',
+      description: 'Ongoing area of responsibility',
+      deadline: null,
+      parent_goal: null,
+      kind: 'area',
+      status: 'active',
+      rawEntry: '',
+    };
+
+    const serialized = serializeGoalEntryYaml(goal);
+
+    expect(serialized).toContain('kind: area');
+    expect(serialized).toContain('status: active');
+    expect(serialized).toContain('codename: health-fitness');
+    expect(serialized).toContain('Maintain physical fitness routine');
+  });
+
+  it('should serialize goal with kind=project and status=completed', () => {
+    const goal: GoalEntry = {
+      timestamp: '14:00',
+      codename: 'launch-website',
+      text: 'Launch company website',
+      description: null,
+      deadline: '2026-03-01',
+      parent_goal: 'digital-presence',
+      kind: 'project',
+      status: 'completed',
+      rawEntry: '',
+    };
+
+    const serialized = serializeGoalEntryYaml(goal);
+
+    expect(serialized).toContain('kind: project');
+    expect(serialized).toContain('status: completed');
+    expect(serialized).toContain('parent_goal: digital-presence');
+    expect(serialized).toContain('deadline: "2026-03-01"');
+  });
+
+  it('should not include kind/status in YAML when null', () => {
+    const goal: GoalEntry = {
+      timestamp: '10:00',
+      codename: 'regular-goal',
+      text: 'A regular goal with no type classification',
+      description: null,
+      deadline: null,
+      parent_goal: null,
+      kind: null,
+      status: null,
+      rawEntry: '',
+    };
+
+    const serialized = serializeGoalEntryYaml(goal);
+
+    expect(serialized).not.toContain('kind:');
+    expect(serialized).not.toContain('status:');
+  });
+
+  it('should parse YAML goal with kind and status', () => {
+    const yamlEntry = `---
+schema_version: "1.0"
+timestamp: "10:00"
+codename: phd-academia
+kind: area
+status: active
+---
+
+PhD and academic career`;
+
+    const parsed = parseGoalEntryYaml(yamlEntry);
+
+    expect(parsed).not.toBeNull();
+    expect(parsed!.kind).toBe('area');
+    expect(parsed!.status).toBe('active');
+    expect(parsed!.codename).toBe('phd-academia');
+    expect(parsed!.text).toBe('PhD and academic career');
+  });
+
+  it('should default kind and status to null for YAML without those fields', () => {
+    const yamlEntry = `---
+schema_version: "1.0"
+timestamp: "14:30"
+codename: old-goal
+deadline: "2025-12-31"
+---
+
+Old goal without kind or status`;
+
+    const parsed = parseGoalEntryYaml(yamlEntry);
+
+    expect(parsed).not.toBeNull();
+    expect(parsed!.kind).toBeNull();
+    expect(parsed!.status).toBeNull();
+    expect(parsed!.codename).toBe('old-goal');
+  });
+
+  it('should default kind and status to null for inline format', () => {
+    const entry = `## 14:30 - inline-goal
+
+Inline goal text`;
+
+    const result = parseGoalEntry(entry);
+
+    expect(result).not.toBeNull();
+    expect(result!.kind).toBeNull();
+    expect(result!.status).toBeNull();
+  });
+
+  it('should round-trip kind and status correctly', () => {
+    const original: GoalEntry = {
+      timestamp: '09:00',
+      codename: 'side-hustle',
+      text: 'Build and grow side business',
+      description: 'Entrepreneurial ventures',
+      deadline: null,
+      parent_goal: null,
+      kind: 'area',
+      status: 'active',
+      rawEntry: '',
+    };
+
+    const serialized = serializeGoalEntryYaml(original);
+    const parsed = parseGoalEntryYaml(serialized);
+
+    expect(parsed).not.toBeNull();
+    expect(parsed!.kind).toBe('area');
+    expect(parsed!.status).toBe('active');
+    expect(parsed!.codename).toBe(original.codename);
+    expect(parsed!.text).toBe(original.text);
+  });
+
+  it('should round-trip project kind with all fields', () => {
+    const original: GoalEntry = {
+      timestamp: '11:00',
+      codename: 'thesis-corrections',
+      text: 'Complete PhD thesis corrections',
+      description: 'Address examiner feedback',
+      deadline: '2026-04-15',
+      parent_goal: 'phd-academia',
+      kind: 'project',
+      status: 'active',
+      rawEntry: '',
+    };
+
+    const serialized = serializeGoalEntryYaml(original);
+    const parsed = parseGoalEntryYaml(serialized);
+
+    expect(parsed).not.toBeNull();
+    expect(parsed!.kind).toBe('project');
+    expect(parsed!.status).toBe('active');
+    expect(parsed!.parent_goal).toBe('phd-academia');
+    expect(parsed!.deadline).toBe('2026-04-15');
   });
 });

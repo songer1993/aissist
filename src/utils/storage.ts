@@ -392,6 +392,8 @@ export interface GoalEntry {
   description: string | null;
   deadline: string | null;
   parent_goal: string | null;
+  kind: string | null; // 'area' | 'project' | null (regular goal)
+  status: string | null; // 'active' | 'completed' | 'paused' | null
   rawEntry: string;
 }
 
@@ -451,6 +453,8 @@ export function parseGoalEntry(entry: string): GoalEntry | null {
     description,
     deadline,
     parent_goal: null, // Inline format doesn't support parent_goal
+    kind: null, // Inline format doesn't support kind
+    status: null, // Inline format doesn't support status
     rawEntry: trimmed,
   };
 }
@@ -488,6 +492,8 @@ export function parseGoalEntryYaml(entry: string): GoalEntry | null {
   const deadline = (metadata.deadline as string) || null;
   const description = (metadata.description as string) || null;
   const parent_goal = (metadata.parent_goal as string) || null;
+  const kind = (metadata.kind as string) || null;
+  const status = (metadata.status as string) || null;
 
   return {
     timestamp,
@@ -496,6 +502,8 @@ export function parseGoalEntryYaml(entry: string): GoalEntry | null {
     description,
     deadline,
     parent_goal,
+    kind,
+    status,
     rawEntry: entry.trim(),
   };
 }
@@ -514,6 +522,12 @@ export function serializeGoalEntryYaml(goal: GoalEntry): string {
   }
   if (goal.parent_goal) {
     metadata.parent_goal = goal.parent_goal;
+  }
+  if (goal.kind) {
+    metadata.kind = goal.kind;
+  }
+  if (goal.status) {
+    metadata.status = goal.status;
   }
   if (goal.deadline) {
     metadata.deadline = goal.deadline;
@@ -766,6 +780,8 @@ export interface ActiveGoal {
   deadline: string | null;
   description: string | null;
   parent_goal: string | null;
+  kind: string | null;
+  status: string | null;
   rawEntry: string;
 }
 
@@ -814,6 +830,8 @@ async function getGoalsFromPath(storagePath: string): Promise<ActiveGoal[]> {
             deadline: entry.deadline,
             description: entry.description,
             parent_goal: entry.parent_goal,
+            kind: entry.kind,
+            status: entry.status,
             rawEntry: entry.rawEntry,
           });
         }

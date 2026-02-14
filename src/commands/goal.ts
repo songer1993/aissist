@@ -118,6 +118,8 @@ goalCommand
         description: options.description || null,
         deadline: deadlineDate || null,
         parent_goal: parentGoal,
+        kind: null,
+        status: null,
         rawEntry: '', // Will be set by serializer
       };
 

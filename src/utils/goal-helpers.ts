@@ -105,6 +105,8 @@ export async function createGoalInteractive(options: GoalCreationOptions = {}): 
       description: options.description || null,
       deadline: deadlineDate || null,
       parent_goal: null,
+      kind: null,
+      status: null,
       rawEntry: '', // Will be set by serializer
     };
 

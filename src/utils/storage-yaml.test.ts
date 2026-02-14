@@ -77,6 +77,9 @@ Second inline formatted goal`;
         text: 'Complete integration tests',
         description: 'Add comprehensive test coverage',
         deadline: '2025-12-31',
+        parent_goal: null,
+        kind: null,
+        status: null,
         rawEntry: '',
       };
 
@@ -174,6 +177,9 @@ Second inline formatted goal`;
         text: 'Test goal',
         description: null,
         deadline: null,
+        parent_goal: null,
+        kind: null,
+        status: null,
         rawEntry: '',
       };
 
@@ -376,6 +382,9 @@ Goal without schema version`;
         text: 'Simple goal',
         description: null,
         deadline: null,
+        parent_goal: null,
+        kind: null,
+        status: null,
         rawEntry: '',
       };
 
@@ -395,6 +404,9 @@ Goal without schema version`;
         text: 'Detailed goal',
         description: 'With description',
         deadline: '2025-12-31',
+        parent_goal: null,
+        kind: null,
+        status: null,
         rawEntry: '',
       };
 

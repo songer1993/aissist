@@ -362,6 +362,8 @@ async function saveProposalsAsGoals(response: string, storagePath: string, linke
           description: linkedGoalCodename ? `Related to: ${linkedGoalCodename}` : null,
           deadline: null,
           parent_goal: null,
+          kind: null,
+          status: null,
           rawEntry: '', // Will be set by serializer
         };
 
