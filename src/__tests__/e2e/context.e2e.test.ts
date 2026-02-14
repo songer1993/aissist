@@ -212,4 +212,109 @@ describe('Context E2E', () => {
     expect(result.stdout).toContain('Date entries:');
     expect(result.stdout).not.toContain('Entities:');
   });
+
+  describe('context query', () => {
+    it('should find entries by kind', async () => {
+      const storagePath = harness.getStoragePath();
+
+      // Create entity files with frontmatter
+      const peopleDir = path.join(storagePath, 'context', 'people');
+      fs.mkdirSync(peopleDir, { recursive: true });
+
+      fs.writeFileSync(
+        path.join(peopleDir, 'alice.md'),
+        '---\nkind: contact\nrole: Engineer\n---\nAlice is a software engineer'
+      );
+      fs.writeFileSync(
+        path.join(peopleDir, 'bob.md'),
+        '---\nkind: contact\nrole: Designer\n---\nBob is a product designer'
+      );
+      fs.writeFileSync(
+        path.join(peopleDir, 'meeting-notes.md'),
+        '---\nkind: note\n---\nStandup meeting notes'
+      );
+
+      const result = await harness.run(['context', 'query', '--kind', 'contact']);
+      harness.expectSuccess(result);
+
+      expect(result.stdout).toContain('Found 2 matching entries:');
+      expect(result.stdout).toContain('people/alice [contact]');
+      expect(result.stdout).toContain('people/bob [contact]');
+      expect(result.stdout).not.toContain('meeting-notes');
+    });
+
+    it('should filter by kind and field value', async () => {
+      const storagePath = harness.getStoragePath();
+
+      const emailsDir = path.join(storagePath, 'context', 'emails');
+      fs.mkdirSync(emailsDir, { recursive: true });
+
+      fs.writeFileSync(
+        path.join(emailsDir, 'email-phd.md'),
+        '---\nkind: email\nproject: my-project\n---\nEmail about the project'
+      );
+      fs.writeFileSync(
+        path.join(emailsDir, 'email-other.md'),
+        '---\nkind: email\nproject: other-project\n---\nEmail about something else'
+      );
+      fs.writeFileSync(
+        path.join(emailsDir, 'note.md'),
+        '---\nkind: note\nproject: my-project\n---\nJust a note'
+      );
+
+      const result = await harness.run([
+        'context', 'query',
+        '--kind', 'email',
+        '--field', 'project=my-project',
+      ]);
+      harness.expectSuccess(result);
+
+      expect(result.stdout).toContain('Found 1 matching entries:');
+      expect(result.stdout).toContain('emails/email-phd [email]');
+      expect(result.stdout).not.toContain('email-other');
+      expect(result.stdout).not.toContain('note [note]');
+    });
+
+    it('should limit search to a specific context subcategory', async () => {
+      const storagePath = harness.getStoragePath();
+
+      const peopleDir = path.join(storagePath, 'context', 'people');
+      const toolsDir = path.join(storagePath, 'context', 'tools');
+      fs.mkdirSync(peopleDir, { recursive: true });
+      fs.mkdirSync(toolsDir, { recursive: true });
+
+      fs.writeFileSync(
+        path.join(peopleDir, 'alice.md'),
+        '---\nkind: contact\n---\nAlice the person'
+      );
+      fs.writeFileSync(
+        path.join(toolsDir, 'vim.md'),
+        '---\nkind: tool\n---\nVim text editor'
+      );
+
+      const result = await harness.run(['context', 'query', '--context', 'people']);
+      harness.expectSuccess(result);
+
+      expect(result.stdout).toContain('Found 1 matching entries:');
+      expect(result.stdout).toContain('people/alice');
+      expect(result.stdout).not.toContain('vim');
+    });
+
+    it('should show message when no entries match', async () => {
+      const storagePath = harness.getStoragePath();
+
+      const peopleDir = path.join(storagePath, 'context', 'people');
+      fs.mkdirSync(peopleDir, { recursive: true });
+
+      fs.writeFileSync(
+        path.join(peopleDir, 'alice.md'),
+        '---\nkind: contact\n---\nAlice'
+      );
+
+      const result = await harness.run(['context', 'query', '--kind', 'trade']);
+      harness.expectSuccess(result);
+
+      expect(result.stdout).toContain('No matching entries found.');
+    });
+  });
 });

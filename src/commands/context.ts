@@ -224,6 +224,109 @@ contextCommand
   });
 
 contextCommand
+  .command('query')
+  .description('Query context entries by kind or field values')
+  .option('-k, --kind <kind>', 'Filter by kind (e.g., contact, email, trade)')
+  .option('-f, --field <field>', 'Filter by field value (format: key=value)')
+  .option('-c, --context <name>', 'Limit to specific context subcategory')
+  .action(async (options: { kind?: string; field?: string; context?: string }) => {
+    try {
+      const storagePath = await getStoragePath();
+      const contextRoot = join(storagePath, 'context');
+
+      // Get context subdirectories to search
+      let categories: string[];
+      if (options.context) {
+        categories = [options.context];
+      } else {
+        try {
+          const entries = await readdir(contextRoot, { withFileTypes: true });
+          categories = entries.filter(e => e.isDirectory()).map(e => e.name);
+        } catch {
+          info('No contexts found.');
+          return;
+        }
+      }
+
+      // Parse --field option
+      let fieldKey: string | undefined;
+      let fieldValue: string | undefined;
+      if (options.field) {
+        const eqIndex = options.field.indexOf('=');
+        if (eqIndex === -1) {
+          error('Invalid --field format. Use key=value (e.g., --field "project=my-project")');
+          return;
+        }
+        fieldKey = options.field.slice(0, eqIndex);
+        fieldValue = options.field.slice(eqIndex + 1);
+      }
+
+      const results: { category: string; filename: string; kind: string; summary: string }[] = [];
+
+      for (const category of categories) {
+        const categoryPath = join(contextRoot, category);
+        let files: string[];
+        try {
+          files = await readdir(categoryPath).then(f => f.filter(name => name.endsWith('.md')));
+        } catch {
+          continue; // Directory doesn't exist or isn't readable
+        }
+
+        for (const file of files) {
+          const filePath = join(categoryPath, file);
+          const content = await readFile(filePath, 'utf-8');
+
+          // Check kind filter
+          if (options.kind && !content.includes(`kind: ${options.kind}`)) {
+            continue;
+          }
+
+          // Check field filter
+          if (fieldKey && fieldValue && !content.includes(`${fieldKey}: ${fieldValue}`)) {
+            continue;
+          }
+
+          // Extract kind from frontmatter
+          const kindMatch = content.match(/^kind:\s*(.+)$/m);
+          const kind = kindMatch ? kindMatch[1].trim() : 'unknown';
+
+          // Get first line of body (after frontmatter)
+          let summary = '';
+          const fmEnd = content.indexOf('---', content.indexOf('---') + 1);
+          if (fmEnd !== -1) {
+            const body = content.slice(fmEnd + 3).trim();
+            const firstLine = body.split('\n').find(line => line.trim().length > 0);
+            summary = firstLine ? firstLine.replace(/^#+\s*/, '').trim() : '';
+          } else {
+            const firstLine = content.split('\n').find(line => line.trim().length > 0);
+            summary = firstLine ? firstLine.replace(/^#+\s*/, '').trim() : '';
+          }
+
+          results.push({
+            category,
+            filename: file.replace(/\.md$/, ''),
+            kind,
+            summary,
+          });
+        }
+      }
+
+      if (results.length === 0) {
+        info('No matching entries found.');
+        return;
+      }
+
+      console.log(`\nFound ${results.length} matching entries:\n`);
+      for (const r of results) {
+        console.log(`  ${r.category}/${r.filename} [${r.kind}] — ${r.summary}`);
+      }
+    } catch (err) {
+      error(`Failed to query context: ${(err as Error).message}`);
+      throw err;
+    }
+  });
+
+contextCommand
   .command('ingest')
   .description('Bulk ingest files from a directory')
   .argument('<context>', 'Context name')
