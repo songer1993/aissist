@@ -6,6 +6,7 @@ Understanding how aissist organizes and stores your data.
 - [Storage Locations](#storage-locations)
 - [Directory Structure](#directory-structure)
 - [File Formats](#file-formats)
+- [Entity Files in Context](#entity-files-in-context)
 - [AI-Generated Codenames](#ai-generated-codenames)
 - [Git Compatibility](#git-compatibility)
 - [Manual Editing](#manual-editing)
@@ -304,6 +305,45 @@ Grateful for patient team members who helped debug issues
 
 Will focus on user profile functionality and testing
 ```
+
+---
+
+## Entity Files in Context
+
+Context subcategories support two file patterns:
+
+- **Date-based**: `context/{category}/YYYY-MM-DD.md` — timestamped log entries (multiple per file)
+- **Entity**: `context/{category}/{slug}.md` — persistent records (one per file)
+
+### Entity Frontmatter
+
+Entity files use `kind:` to indicate their type plus type-specific fields:
+
+```
+---
+schema_version: "1.0"
+kind: contact
+role: PhD Supervisor
+institution: Cambridge
+email: pok21@cam.ac.uk
+---
+
+Per Ola Kristensson is a professor of computational interaction.
+```
+
+**Common kinds and their fields:**
+
+- `kind: contact` — role, institution, email
+- `kind: email` — direction, correspondent, date, project, thread
+- `kind: trade` — status, result, coin, side, size, entry, exit, pnl, account, date_open, date_close
+- `kind: diary` — date, project
+- `kind: reference` — category, project
+
+### Querying Entities
+
+Use `aissist context query --kind <kind>` to filter by type.
+Use `aissist context show <category> --entity <slug>` to view a specific entity.
+Use `aissist context show <category>` to list both entity and date files.
 
 ---
 

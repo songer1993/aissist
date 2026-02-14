@@ -426,13 +426,58 @@ aissist context show [options] <context>
 **Options:**
 - `-f, --from <timeframe>` - Show entries from timeframe
 - `-n, --limit <number>` - Limit number of entries
+- `-e, --entity <name>` - Show a specific entity file
+- `-d, --date <date>` - Show entries for specific date (YYYY-MM-DD)
 
 **Examples:**
 ```bash
 aissist context show work
 aissist context show work --from "this week"
 aissist context show diet --limit 5
+
+# List all files in a context (entities + date files)
+aissist context show people
+
+# Show a specific entity
+aissist context show people --entity per-ola-kristensson
+
+# Show entries for a specific date
+aissist context show work --date 2026-02-14
 ```
+
+### context query
+
+Query context entries by kind or field values.
+
+**Syntax:**
+```bash
+aissist context query [options]
+```
+
+**Options:**
+- `-k, --kind <kind>` - Filter by kind (e.g., contact, email, trade)
+- `-f, --field <field>` - Filter by field value (format: key=value)
+- `-c, --context <name>` - Limit to specific context subcategory
+
+**Examples:**
+```bash
+# Find all contacts
+aissist context query --kind contact
+
+# Find emails for a specific project
+aissist context query --kind email --field "project=phd-thesis-corrections"
+
+# Search only in people category
+aissist context query --context people
+
+# Find trades by account
+aissist context query --kind trade --field "account=hl-vault"
+```
+
+**Output:**
+- Lists matching entries with format: `category/slug [kind] — preview`
+- Matches frontmatter fields only (not body text)
+- Uses exact matching (not substring)
 
 ### context ingest
 
