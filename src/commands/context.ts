@@ -147,6 +147,11 @@ contextCommand
       const storagePath = await getStoragePath();
       const contextPath = join(storagePath, 'context', context);
 
+      // Warn if both flags provided
+      if (options.entity && options.date) {
+        info('Both --entity and --date provided; showing entity file.');
+      }
+
       // Show a specific entity file
       if (options.entity) {
         const entityPath = join(contextPath, `${options.entity}.md`);
