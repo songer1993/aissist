@@ -106,6 +106,29 @@ program.addCommand(backupCommand);
 program.addCommand(restoreCommand);
 program.addCommand(syncCommand);
 
+// Top-level alias: `aissist log` → `aissist history log`
+program
+  .command('log')
+  .description('Log a history entry (shortcut for "history log")')
+  .argument('[text]', 'History entry text (omit when using --from)')
+  .option('-g, --goal [keyword]', 'Link this history entry to a goal (optional keyword for matching)')
+  .option('-f, --from <timeframe>', 'Import GitHub activity from timeframe (e.g., "this week", "today")')
+  .option('-d, --date <date>', 'Date for the entry (YYYY-MM-DD or natural language like "yesterday")')
+  .option('-s, --smart', 'Use AI to clean up text and auto-link to goals')
+  .action(async (text, options) => {
+    // Rewrite argv to delegate to `history log`
+    const args = ['history', 'log'];
+    if (text) args.push(text);
+    if (options.goal !== undefined) {
+      args.push('--goal');
+      if (typeof options.goal === 'string') args.push(options.goal);
+    }
+    if (options.from) args.push('--from', options.from);
+    if (options.date) args.push('--date', options.date);
+    if (options.smart) args.push('--smart');
+    await program.parseAsync(['node', 'aissist', ...args]);
+  });
+
 program
   .command('recall')
   .description('AI-powered semantic search')

@@ -3,7 +3,7 @@ import chalk from "chalk";
 
 export function printBrand() {
   // Suppress banner in non-interactive/agentic environments
-  if (process.env.AISSIST_QUIET === '1' || process.env.CI) {
+  if (process.env.AISSIST_QUIET === '1' || process.env.CI || !process.stdout.isTTY) {
     return;
   }
   console.log(
