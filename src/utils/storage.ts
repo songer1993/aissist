@@ -1662,7 +1662,8 @@ export function serializeContextItemEntryYaml(context: ContextItemEntry): string
   };
 
   // For entity files (kind is set), omit source if it's 'Entity' (just a marker)
-  if (context.source && context.source !== 'Entity') {
+  // For regular entries (no kind), always include source
+  if (context.source && !(context.kind && context.source === 'Entity')) {
     metadata.source = context.source;
   }
 

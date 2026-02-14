@@ -240,6 +240,24 @@ Goal: test-goal`;
       expect(serialized).not.toContain('source: Entity');
     });
 
+    it('should preserve source Entity when kind is null (non-entity entry)', () => {
+      const context: ContextItemEntry = {
+        timestamp: '14:30',
+        source: 'Entity',
+        text: 'A regular context entry that happens to have source Entity',
+        goal: null,
+        kind: null,
+        metadata: {},
+        rawEntry: '',
+      };
+
+      const serialized = serializeContextItemEntryYaml(context);
+
+      // When kind is null, source should be preserved even if it's 'Entity'
+      expect(serialized).toContain('source: Entity');
+      expect(serialized).not.toContain('kind');
+    });
+
     it('should parse YAML context entry with kind and extra metadata fields', () => {
       const yamlEntry = `---
 schema_version: "1.0"
