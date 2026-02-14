@@ -141,26 +141,77 @@ contextCommand
   .description('Show context entries')
   .argument('<context>', 'Context name')
   .option('-d, --date <date>', 'Show entries for specific date (YYYY-MM-DD)')
+  .option('-e, --entity <name>', 'Show a specific entity file')
   .action(async (context: string, options) => {
     try {
       const storagePath = await getStoragePath();
-      const date = options.date || getCurrentDate();
+      const contextPath = join(storagePath, 'context', context);
 
-      if (options.date && !parseDate(options.date)) {
-        error(`Invalid date format: ${options.date}. Use YYYY-MM-DD format.`);
+      // Show a specific entity file
+      if (options.entity) {
+        const entityPath = join(contextPath, `${options.entity}.md`);
+        const content = await readMarkdown(entityPath);
+
+        if (!content) {
+          info(`No entity file found for "${options.entity}" in context "${context}"`);
+          return;
+        }
+
+        console.log(`\nContext "${context}" entity "${options.entity}":\n`);
+        console.log(content);
         return;
       }
 
-      const filePath = join(storagePath, 'context', context, `${date}.md`);
-      const content = await readMarkdown(filePath);
+      // Show entries for a specific date
+      if (options.date) {
+        if (!parseDate(options.date)) {
+          error(`Invalid date format: ${options.date}. Use YYYY-MM-DD format.`);
+          return;
+        }
 
-      if (!content) {
-        info(`No entries found for context "${context}" on ${date}`);
+        const filePath = join(contextPath, `${options.date}.md`);
+        const content = await readMarkdown(filePath);
+
+        if (!content) {
+          info(`No entries found for context "${context}" on ${options.date}`);
+          return;
+        }
+
+        console.log(`\nContext "${context}" for ${options.date}:\n`);
+        console.log(content);
         return;
       }
 
-      console.log(`\nContext "${context}" for ${date}:\n`);
-      console.log(content);
+      // No flags: list all files in the category
+      const datePattern = /^\d{4}-\d{2}-\d{2}\.md$/;
+
+      try {
+        const files = await readdir(contextPath);
+        const mdFiles = files.filter(f => f.endsWith('.md'));
+
+        if (mdFiles.length === 0) {
+          info(`No entries found for context "${context}"`);
+          return;
+        }
+
+        const entityFiles = mdFiles.filter(f => !datePattern.test(f)).map(f => f.replace(/\.md$/, ''));
+        const dateFiles = mdFiles.filter(f => datePattern.test(f)).map(f => f.replace(/\.md$/, ''));
+
+        console.log(`\nContext "${context}":\n`);
+
+        if (entityFiles.length > 0) {
+          console.log('  Entities:');
+          entityFiles.forEach(name => console.log(`    • ${name}`));
+        }
+
+        if (dateFiles.length > 0) {
+          if (entityFiles.length > 0) console.log('');
+          console.log('  Date entries:');
+          dateFiles.forEach(name => console.log(`    • ${name}`));
+        }
+      } catch {
+        info(`No entries found for context "${context}"`);
+      }
     } catch (err) {
       error(`Failed to show context: ${(err as Error).message}`);
       throw err;

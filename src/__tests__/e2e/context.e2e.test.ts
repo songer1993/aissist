@@ -9,6 +9,8 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import * as fs from 'fs';
+import * as path from 'path';
 import { CliTestHarness } from '../helpers/cli-test-harness.js';
 
 describe('Context E2E', () => {
@@ -45,8 +47,9 @@ describe('Context E2E', () => {
     await harness.run(['context', 'log', 'work', 'Context item 1']);
     await harness.run(['context', 'log', 'work', 'Context item 2']);
 
-    // Show context
-    const result = await harness.run(['context', 'show', 'work']);
+    // Show context for today's date
+    const today = new Date().toISOString().split('T')[0];
+    const result = await harness.run(['context', 'show', 'work', '--date', today]);
 
     harness.expectSuccess(result);
     expect(result.stdout).toContain('Context item 1');
@@ -96,8 +99,9 @@ describe('Context E2E', () => {
     // Add a context item
     await harness.run(['context', 'log', 'personal', 'Persistent context item']);
 
-    // Show context in a separate command
-    const result = await harness.run(['context', 'show', 'personal']);
+    // Show context in a separate command using --date for today
+    const today = new Date().toISOString().split('T')[0];
+    const result = await harness.run(['context', 'show', 'personal', '--date', today]);
 
     harness.expectSuccess(result);
     expect(result.stdout).toContain('Persistent context item');
@@ -109,8 +113,9 @@ describe('Context E2E', () => {
     await harness.run(['context', 'log', 'project', 'Second context']);
     await harness.run(['context', 'log', 'project', 'Third context']);
 
-    // Show all context
-    const result = await harness.run(['context', 'show', 'project']);
+    // Show all context for today
+    const today = new Date().toISOString().split('T')[0];
+    const result = await harness.run(['context', 'show', 'project', '--date', today]);
 
     harness.expectSuccess(result);
     expect(result.stdout).toContain('First context');
@@ -129,5 +134,82 @@ describe('Context E2E', () => {
 
     expect(result.stdout).toContain('work');
     expect(result.stdout).toContain('personal');
+  });
+
+  it('should list entity and date files when no flags provided', async () => {
+    const storagePath = harness.getStoragePath();
+    const contextDir = path.join(storagePath, 'context', 'people');
+    fs.mkdirSync(contextDir, { recursive: true });
+
+    // Create entity files
+    fs.writeFileSync(path.join(contextDir, 'per-ola-kristensson.md'), '# Per Ola Kristensson\nPhD Supervisor');
+    fs.writeFileSync(path.join(contextDir, 'john-dudley.md'), '# John Dudley\nCollaborator');
+
+    // Create a date file
+    fs.writeFileSync(path.join(contextDir, '2026-02-14.md'), '## Meeting notes');
+
+    const result = await harness.run(['context', 'show', 'people']);
+    harness.expectSuccess(result);
+
+    // Should show entity files
+    expect(result.stdout).toContain('Entities:');
+    expect(result.stdout).toContain('per-ola-kristensson');
+    expect(result.stdout).toContain('john-dudley');
+
+    // Should show date entries
+    expect(result.stdout).toContain('Date entries:');
+    expect(result.stdout).toContain('2026-02-14');
+  });
+
+  it('should show entity file content with --entity flag', async () => {
+    const storagePath = harness.getStoragePath();
+    const contextDir = path.join(storagePath, 'context', 'people');
+    fs.mkdirSync(contextDir, { recursive: true });
+
+    // Create an entity file
+    fs.writeFileSync(path.join(contextDir, 'per-ola-kristensson.md'), '# Per Ola Kristensson\nPhD Supervisor at Cambridge');
+
+    const result = await harness.run(['context', 'show', 'people', '--entity', 'per-ola-kristensson']);
+    harness.expectSuccess(result);
+
+    expect(result.stdout).toContain('Per Ola Kristensson');
+    expect(result.stdout).toContain('PhD Supervisor at Cambridge');
+  });
+
+  it('should show info message for non-existent entity', async () => {
+    const storagePath = harness.getStoragePath();
+    const contextDir = path.join(storagePath, 'context', 'people');
+    fs.mkdirSync(contextDir, { recursive: true });
+
+    const result = await harness.run(['context', 'show', 'people', '--entity', 'nonexistent']);
+    harness.expectSuccess(result);
+
+    expect(result.stdout).toContain('No entity file found');
+  });
+
+  it('should list only entities when no date files exist', async () => {
+    const storagePath = harness.getStoragePath();
+    const contextDir = path.join(storagePath, 'context', 'tools');
+    fs.mkdirSync(contextDir, { recursive: true });
+
+    fs.writeFileSync(path.join(contextDir, 'vim.md'), '# Vim\nText editor');
+
+    const result = await harness.run(['context', 'show', 'tools']);
+    harness.expectSuccess(result);
+
+    expect(result.stdout).toContain('Entities:');
+    expect(result.stdout).toContain('vim');
+    expect(result.stdout).not.toContain('Date entries:');
+  });
+
+  it('should list only date files when no entity files exist', async () => {
+    // Log a context item to create a date file
+    await harness.run(['context', 'log', 'meetings', 'Stand-up discussion']);
+
+    const result = await harness.run(['context', 'show', 'meetings']);
+    harness.expectSuccess(result);
+
+    expect(result.stdout).toContain('Date entries:');
+    expect(result.stdout).not.toContain('Entities:');
   });
 });
