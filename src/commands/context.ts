@@ -231,6 +231,23 @@ contextCommand
   .option('-c, --context <name>', 'Limit to specific context subcategory')
   .action(async (options: { kind?: string; field?: string; context?: string }) => {
     try {
+      // Parse --field option (validate before scanning directories)
+      let fieldKey: string | undefined;
+      let fieldValue: string | undefined;
+      if (options.field) {
+        const eqIndex = options.field.indexOf('=');
+        if (eqIndex === -1) {
+          error('Invalid --field format. Use key=value (e.g., --field "project=my-project")');
+          return;
+        }
+        fieldKey = options.field.slice(0, eqIndex).trim();
+        fieldValue = options.field.slice(eqIndex + 1).trim();
+        if (!fieldKey || !fieldValue) {
+          error('Invalid --field format. Both key and value must be non-empty (e.g., --field "project=my-project")');
+          return;
+        }
+      }
+
       const storagePath = await getStoragePath();
       const contextRoot = join(storagePath, 'context');
 
@@ -248,19 +265,6 @@ contextCommand
         }
       }
 
-      // Parse --field option
-      let fieldKey: string | undefined;
-      let fieldValue: string | undefined;
-      if (options.field) {
-        const eqIndex = options.field.indexOf('=');
-        if (eqIndex === -1) {
-          error('Invalid --field format. Use key=value (e.g., --field "project=my-project")');
-          return;
-        }
-        fieldKey = options.field.slice(0, eqIndex);
-        fieldValue = options.field.slice(eqIndex + 1);
-      }
-
       const results: { category: string; filename: string; kind: string; summary: string }[] = [];
 
       for (const category of categories) {
@@ -276,29 +280,42 @@ contextCommand
           const filePath = join(categoryPath, file);
           const content = await readFile(filePath, 'utf-8');
 
-          // Check kind filter
-          if (options.kind && !content.includes(`kind: ${options.kind}`)) {
-            continue;
+          // Extract frontmatter section only (between --- delimiters)
+          let frontmatter = '';
+          let body = '';
+          const fmStart = content.indexOf('---');
+          const fmEnd = fmStart !== -1 ? content.indexOf('---', fmStart + 3) : -1;
+          if (fmStart !== -1 && fmEnd !== -1) {
+            frontmatter = content.slice(fmStart + 3, fmEnd);
+            body = content.slice(fmEnd + 3).trim();
+          } else {
+            body = content.trim();
           }
 
-          // Check field filter
-          if (fieldKey && fieldValue && !content.includes(`${fieldKey}: ${fieldValue}`)) {
-            continue;
+          // Check kind filter (exact match in frontmatter only)
+          if (options.kind) {
+            const kindRegex = new RegExp(`^kind:\\s*${options.kind}\\s*$`, 'm');
+            if (!kindRegex.test(frontmatter)) {
+              continue;
+            }
+          }
+
+          // Check field filter (exact match in frontmatter only)
+          if (fieldKey && fieldValue) {
+            const fieldRegex = new RegExp(`^${fieldKey}:\\s*${fieldValue}\\s*$`, 'm');
+            if (!fieldRegex.test(frontmatter)) {
+              continue;
+            }
           }
 
           // Extract kind from frontmatter
-          const kindMatch = content.match(/^kind:\s*(.+)$/m);
+          const kindMatch = frontmatter.match(/^kind:\s*(.+)$/m);
           const kind = kindMatch ? kindMatch[1].trim() : 'unknown';
 
           // Get first line of body (after frontmatter)
           let summary = '';
-          const fmEnd = content.indexOf('---', content.indexOf('---') + 1);
-          if (fmEnd !== -1) {
-            const body = content.slice(fmEnd + 3).trim();
+          if (body) {
             const firstLine = body.split('\n').find(line => line.trim().length > 0);
-            summary = firstLine ? firstLine.replace(/^#+\s*/, '').trim() : '';
-          } else {
-            const firstLine = content.split('\n').find(line => line.trim().length > 0);
             summary = firstLine ? firstLine.replace(/^#+\s*/, '').trim() : '';
           }
 

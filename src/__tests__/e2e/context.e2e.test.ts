@@ -316,5 +316,74 @@ describe('Context E2E', () => {
 
       expect(result.stdout).toContain('No matching entries found.');
     });
+
+    it('should show error for invalid --field format', async () => {
+      const result = await harness.run(['context', 'query', '--field', 'noequals']);
+      harness.expectSuccess(result);
+
+      const output = result.stdout + result.stderr;
+      expect(output).toContain('Invalid --field format');
+    });
+
+    it('should show error for empty key or value in --field', async () => {
+      const result1 = await harness.run(['context', 'query', '--field', '=value']);
+      harness.expectSuccess(result1);
+      const output1 = result1.stdout + result1.stderr;
+      expect(output1).toContain('Both key and value must be non-empty');
+
+      const result2 = await harness.run(['context', 'query', '--field', 'key=']);
+      harness.expectSuccess(result2);
+      const output2 = result2.stdout + result2.stderr;
+      expect(output2).toContain('Both key and value must be non-empty');
+    });
+
+    it('should match only in frontmatter, not in body text', async () => {
+      const storagePath = harness.getStoragePath();
+
+      const notesDir = path.join(storagePath, 'context', 'notes');
+      fs.mkdirSync(notesDir, { recursive: true });
+
+      // File where "kind: contact" appears only in body, not frontmatter
+      fs.writeFileSync(
+        path.join(notesDir, 'misleading.md'),
+        '---\nkind: note\n---\nThis mentions kind: contact in the body'
+      );
+      // File where kind: contact is in frontmatter
+      fs.writeFileSync(
+        path.join(notesDir, 'real-contact.md'),
+        '---\nkind: contact\n---\nActual contact info'
+      );
+
+      const result = await harness.run(['context', 'query', '--kind', 'contact']);
+      harness.expectSuccess(result);
+
+      expect(result.stdout).toContain('Found 1 matching entries:');
+      expect(result.stdout).toContain('notes/real-contact [contact]');
+      expect(result.stdout).not.toContain('misleading');
+    });
+
+    it('should use exact matching, not substring matching', async () => {
+      const storagePath = harness.getStoragePath();
+
+      const workDir = path.join(storagePath, 'context', 'work');
+      fs.mkdirSync(workDir, { recursive: true });
+
+      // "contact" should not match "contactor"
+      fs.writeFileSync(
+        path.join(workDir, 'a.md'),
+        '---\nkind: contactor\n---\nNot a contact'
+      );
+      fs.writeFileSync(
+        path.join(workDir, 'b.md'),
+        '---\nkind: contact\n---\nReal contact'
+      );
+
+      const result = await harness.run(['context', 'query', '--kind', 'contact']);
+      harness.expectSuccess(result);
+
+      expect(result.stdout).toContain('Found 1 matching entries:');
+      expect(result.stdout).toContain('work/b [contact]');
+      expect(result.stdout).not.toContain('work/a');
+    });
   });
 });
