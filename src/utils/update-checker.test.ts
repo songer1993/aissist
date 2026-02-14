@@ -90,6 +90,9 @@ describe('update-checker', () => {
         backupCache = null;
       }
 
+      // Remove existing cache so tests start clean
+      await rm(globalCachePath, { force: true });
+
       // Ensure cache directory exists
       await mkdir(globalCacheDir, { recursive: true });
 

@@ -24,6 +24,7 @@ Deadline: 2025-11-15`;
       text: 'Complete project proposal',
       description: null,
       deadline: '2025-11-15',
+      parent_goal: null,
       rawEntry: entry,
     });
   });
@@ -41,6 +42,7 @@ Launch MVP to production`;
       text: 'Launch MVP to production',
       description: null,
       deadline: null,
+      parent_goal: null,
       rawEntry: entry,
     });
   });
@@ -58,6 +60,7 @@ Complete project proposal`;
       text: 'Complete project proposal',
       description: null,
       deadline: null,
+      parent_goal: null,
       rawEntry: entry,
     });
   });
@@ -77,6 +80,7 @@ and details`;
       text: 'This is a complex task\nwith multiple lines\nand details',
       description: null,
       deadline: null,
+      parent_goal: null,
       rawEntry: entry,
     });
   });
@@ -195,6 +199,7 @@ Deadline: 2025-11-15`;
       text: 'Complete the project',
       description: 'This is a detailed description',
       deadline: '2025-11-15',
+      parent_goal: null,
       rawEntry: entry,
     });
   });
@@ -216,6 +221,7 @@ Launch new feature
       text: 'Launch new feature',
       description: 'Phase 1: Testing\nPhase 2: Marketing\nPhase 3: Launch',
       deadline: null,
+      parent_goal: null,
       rawEntry: entry,
     });
   });
@@ -252,6 +258,7 @@ Deadline: 2025-12-01`;
       text: 'Complete deliverables',
       description: 'Include documentation\nRun all tests',
       deadline: '2025-12-01',
+      parent_goal: null,
       rawEntry: entry,
     });
   });
@@ -338,6 +345,7 @@ describe('Goal YAML serialization', () => {
       text: 'Complete the test implementation',
       description: 'Add comprehensive test coverage',
       deadline: '2025-12-31',
+      parent_goal: null,
       rawEntry: '',
     };
 
@@ -359,6 +367,7 @@ describe('Goal YAML serialization', () => {
       text: 'Simple goal text',
       description: null,
       deadline: null,
+      parent_goal: null,
       rawEntry: '',
     };
 
@@ -446,6 +455,7 @@ Inline formatted goal`;
       text: 'Test round-trip serialization',
       description: 'Ensure no data loss',
       deadline: '2025-11-15',
+      parent_goal: null,
       rawEntry: '',
     };
 
