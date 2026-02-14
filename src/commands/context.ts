@@ -292,24 +292,24 @@ contextCommand
             body = content.trim();
           }
 
-          // Check kind filter (exact match in frontmatter only)
+          // Check kind filter (exact match in frontmatter only, handles optional quotes)
           if (options.kind) {
-            const kindRegex = new RegExp(`^kind:\\s*${options.kind}\\s*$`, 'm');
+            const kindRegex = new RegExp(`^kind:\\s*"?${options.kind}"?\\s*$`, 'm');
             if (!kindRegex.test(frontmatter)) {
               continue;
             }
           }
 
-          // Check field filter (exact match in frontmatter only)
+          // Check field filter (exact match in frontmatter only, handles optional quotes)
           if (fieldKey && fieldValue) {
-            const fieldRegex = new RegExp(`^${fieldKey}:\\s*${fieldValue}\\s*$`, 'm');
+            const fieldRegex = new RegExp(`^${fieldKey}:\\s*"?${fieldValue}"?\\s*$`, 'm');
             if (!fieldRegex.test(frontmatter)) {
               continue;
             }
           }
 
-          // Extract kind from frontmatter
-          const kindMatch = frontmatter.match(/^kind:\s*(.+)$/m);
+          // Extract kind from frontmatter (strip optional quotes)
+          const kindMatch = frontmatter.match(/^kind:\s*"?([^"\n]+)"?\s*$/m);
           const kind = kindMatch ? kindMatch[1].trim() : 'unknown';
 
           // Get first line of body (after frontmatter)
