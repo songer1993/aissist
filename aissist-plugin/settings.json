@@ -40,6 +40,15 @@
             "command": "bash $CLAUDE_PROJECT_DIR/hooks/post-bash.sh"
           }
         ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash $CLAUDE_PROJECT_DIR/hooks/category-sync.sh"
+          }
+        ]
       }
     ]
   }
