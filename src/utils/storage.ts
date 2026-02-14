@@ -1547,6 +1547,8 @@ export interface ContextItemEntry {
   source: string;
   text: string;
   goal: string | null;
+  kind: string | null;                           // 'contact', 'email', 'trade', 'diary', 'reference', etc.
+  metadata: Record<string, unknown>;             // extra type-specific fields (role, institution, coin, pnl, etc.)
   rawEntry: string;
 }
 
@@ -1592,6 +1594,8 @@ export function parseContextItemEntry(entry: string): ContextItemEntry | null {
     source,
     text,
     goal,
+    kind: null,
+    metadata: {},
     rawEntry: trimmed,
   };
 }
@@ -1626,12 +1630,24 @@ export function parseContextItemEntryYaml(entry: string): ContextItemEntry | nul
 
   // Extract optional fields
   const goal = (metadata.goal as string) || null;
+  const kind = (metadata.kind as string) || null;
+
+  // Collect extra metadata fields (everything except known fields)
+  const knownFields = new Set(['schema_version', 'timestamp', 'source', 'goal', 'kind']);
+  const extraMetadata: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(metadata)) {
+    if (!knownFields.has(key)) {
+      extraMetadata[key] = value;
+    }
+  }
 
   return {
     timestamp,
     source,
     text,
     goal,
+    kind,
+    metadata: extraMetadata,
     rawEntry: entry.trim(),
   };
 }
@@ -1643,11 +1659,26 @@ export function serializeContextItemEntryYaml(context: ContextItemEntry): string
   const metadata: Record<string, unknown> = {
     schema_version: '1.0',
     timestamp: context.timestamp,
-    source: context.source,
   };
+
+  // For entity files (kind is set), omit source if it's 'Entity' (just a marker)
+  if (context.source && context.source !== 'Entity') {
+    metadata.source = context.source;
+  }
 
   if (context.goal) {
     metadata.goal = context.goal;
+  }
+
+  if (context.kind) {
+    metadata.kind = context.kind;
+  }
+
+  // Spread extra metadata fields into YAML
+  if (context.metadata) {
+    for (const [key, value] of Object.entries(context.metadata)) {
+      metadata[key] = value;
+    }
   }
 
   return serializeYamlFrontMatter(metadata, context.text);

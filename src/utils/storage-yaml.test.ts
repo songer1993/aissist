@@ -138,6 +138,8 @@ Second inline formatted goal`;
         source: 'Email',
         text: 'Stakeholder feedback',
         goal: 'requirements-goal',
+        kind: null,
+        metadata: {},
         rawEntry: '',
       };
 

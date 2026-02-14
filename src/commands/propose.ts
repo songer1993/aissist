@@ -418,6 +418,8 @@ async function saveProposalAsMarkdown(
       text: proposalText,
       source: 'proposal',
       goal: linkedGoalCodename,
+      kind: null,
+      metadata: {},
       rawEntry: '', // Will be set by serializer
     };
 

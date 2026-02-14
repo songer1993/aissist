@@ -86,6 +86,8 @@ contextCommand
         source,
         text: content,
         goal: goalLinkResult.codename || null,
+        kind: null,
+        metadata: {},
         rawEntry: '', // Will be set by serializer
       };
 
@@ -193,6 +195,8 @@ contextCommand
             source: `file:${entry.name}`,
             text: fileContent,
             goal: null,
+            kind: null,
+            metadata: {},
             rawEntry: '', // Will be set by serializer
           };
           const logEntry = serializeContextItemEntryYaml(contextEntry);
