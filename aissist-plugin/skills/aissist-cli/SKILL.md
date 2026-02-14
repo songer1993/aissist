@@ -295,12 +295,28 @@ Create accomplishment reports from your history for various purposes.
 | `/aissist:recall` | Search history | Natural language query | Relevant entries |
 | `/aissist:report` | Generate reports | Timeframe + purpose | Formatted report |
 
+## CRITICAL: Non-Interactive Usage in Claude Code
+
+**Claude Code runs in a non-interactive shell.** Interactive TUI commands (checkbox selectors, arrow-key menus) will hang or timeout. **ALWAYS use non-interactive alternatives:**
+
+| Task | DO NOT use (interactive) | USE instead (non-interactive) |
+|------|--------------------------|-------------------------------|
+| List todos | `aissist todo list` | `aissist todo list --plain` |
+| List goals | `aissist goal list` | `aissist goal list --plain` |
+| Complete todo | `aissist todo manage` | `aissist todo done "task text"` or `aissist todo done 1` |
+| Complete goal | interactive selection | `aissist goal complete <codename>` |
+| Edit todo | `aissist todo edit 1` | Direct file edit via Edit tool on `~/.aissist/todos/YYYY-MM-DD.md` |
+| Manage todos | `aissist todo manage` | Use `todo list --plain` + `todo done` + `todo add` individually |
+| Reflect | `aissist reflect` | Direct file write to `~/.aissist/reflections/YYYY-MM-DD.md` |
+
+**Rule: If a command has `--plain`, always use it. If a command requires interactive input (prompts, selectors), use the CLI alternative or direct file operations.**
+
 ## Command Construction Guidelines
 
 1. **Always check if storage is initialized** - If user is new to aissist, suggest `aissist init` first
 2. **Use goal codenames for linking** - When linking to goals, use the kebab-case codename
 3. **Natural language deadlines** - Aissist parses "next Friday", "end of month", "2024-12-31"
-4. **Interactive when appropriate** - Suggest `list` or `manage` commands for better UX over plain text
+4. **Always use --plain for list commands** - Interactive TUI does not work in Claude Code
 5. **Link related data** - When logging history or todos, link to relevant goals using `--goal`
 
 ## Progressive Disclosure
