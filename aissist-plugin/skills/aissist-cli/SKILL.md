@@ -311,6 +311,13 @@ Create accomplishment reports from your history for various purposes.
 
 **Rule: If a command has `--plain`, always use it. If a command requires interactive input (prompts, selectors), use the CLI alternative or direct file operations.**
 
+**Suppress ASCII banner:** Always prefix aissist commands with `AISSIST_QUIET=1` to suppress the figlet logo:
+```bash
+AISSIST_QUIET=1 aissist todo list --plain
+AISSIST_QUIET=1 aissist todo done "task text"
+AISSIST_QUIET=1 aissist context query --kind contact
+```
+
 ## Command Construction Guidelines
 
 1. **Always check if storage is initialized** - If user is new to aissist, suggest `aissist init` first
