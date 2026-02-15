@@ -117,6 +117,23 @@ describe('goal-matcher', () => {
 
     describe('when goalKeyword is a string', () => {
       describe('single match scenarios', () => {
+        it('should return exact codename match even when substring matches multiple', async () => {
+          const goalsWithOverlap: ActiveGoal[] = [
+            { codename: 'phd-thesis-corrections', text: 'Post-viva corrections', date: '2025-11-01' },
+            { codename: 'phd-academia', text: 'PhD & academic career', date: '2025-11-02' },
+          ];
+          vi.mocked(storage.getActiveGoals).mockResolvedValue(goalsWithOverlap);
+
+          const result = await linkToGoal({
+            goalKeyword: 'phd-thesis-corrections',
+            storagePath: mockStoragePath,
+          });
+
+          expect(result.codename).toBe('phd-thesis-corrections');
+          expect(result.message).toBe('Matched goal: phd-thesis-corrections');
+          expect(select).not.toHaveBeenCalled();
+        });
+
         it('should return immediate match for unique keyword', async () => {
           vi.mocked(storage.getActiveGoals).mockResolvedValue(mockGoals);
 

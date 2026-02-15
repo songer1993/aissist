@@ -58,7 +58,9 @@ async function executeClaudeCommand(prompt: string, timeoutMs: number = 30000, m
       args.push('--model', model);
     }
 
-    const proc = spawn('claude', args);
+    const proc = spawn('claude', args, {
+      env: { ...process.env, CLAUDECODE: undefined },
+    });
 
     let stdout = '';
     let stderr = '';

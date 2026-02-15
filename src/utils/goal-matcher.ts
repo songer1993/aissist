@@ -79,7 +79,9 @@ export async function linkToGoal(options: GoalLinkingOptions): Promise<GoalLinki
 }
 
 /**
- * Perform case-insensitive substring matching on goal text and codename
+ * Perform goal matching with exact codename match prioritised over substring matching.
+ * If the keyword exactly matches a codename, return only that goal (no ambiguity).
+ * Otherwise, fall back to case-insensitive substring matching on text and codename.
  *
  * @param goals - List of active goals to search
  * @param keyword - Keyword to match against
@@ -88,6 +90,13 @@ export async function linkToGoal(options: GoalLinkingOptions): Promise<GoalLinki
 function performKeywordMatch(goals: ActiveGoal[], keyword: string): ActiveGoal[] {
   const lowerKeyword = keyword.toLowerCase();
 
+  // Prioritise exact codename match
+  const exactMatch = goals.filter(goal => goal.codename.toLowerCase() === lowerKeyword);
+  if (exactMatch.length > 0) {
+    return exactMatch;
+  }
+
+  // Fall back to substring matching
   return goals.filter(goal => {
     const textMatch = goal.text.toLowerCase().includes(lowerKeyword);
     const codenameMatch = goal.codename.toLowerCase().includes(lowerKeyword);
